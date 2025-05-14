@@ -13,6 +13,9 @@ depends: [
   "dune" {>= "2.9.0"}
   "angstrom" {>= "0.14.0"}
   "faraday" {>= "0.6.1"}
+  "base" {>= "v0.15.0"}
+  "ppx_deriving" {>= "6.0"}
+  "ppx_sexp_conv" {>= "v0.16.0"}
 ]
 
 synopsis: "A Org-mode parser for OCaml"
