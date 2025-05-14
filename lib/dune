@@ -1,0 +1,6 @@
+(library
+  (name orgaf)
+  (public_name orgaf)
+  (libraries
+    angstrom faraday)
+  (flags (:standard -safe-string)))

@@ -1,0 +1,21 @@
+opam-version: "2.0"
+maintainer: "Sangwoo Joh <work.sangwoo.joh@gmail.com>"
+authors: ["Sangwoo Joh <work.sangwoo.joh@gmail.com>"]
+license: "MIT"
+homepage: "https://github.com/sangwoo-joh/orgaf"
+bug-reports: "https://github.com/sangwoo-joh/orgaf/issues"
+build: [
+  ["dune" "build"]
+]
+
+depends: [
+  "ocaml" {>= "4.05.1"}
+  "dune" {>= "2.9.0"}
+  "angstrom" {>= "0.14.0"}
+  "faraday" {>= "0.6.1"}
+]
+
+synopsis: "A Org-mode parser for OCaml"
+description: """
+org/af implements the Org Syntax with respect to parsing, serialization, and converting
+"""
