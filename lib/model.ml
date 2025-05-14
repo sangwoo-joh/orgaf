@@ -1,6 +1,5 @@
 open Sexplib.Std
 
-
 type element =
   (* syntactic components that at the same or greater than a paragraph *)
   | Heading of heading_info
