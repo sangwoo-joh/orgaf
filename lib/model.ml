@@ -4,7 +4,7 @@ type element =
   | Zeroth_Section of zeroth_section_info
   | Section of section_info
   | Greater_Element of greater_element
-  | Lesser_Element of lesser_element
+  | Lesser_Element of lesser_element [@@deriving sexp]
 
 and heading_info = {
   stars: int;
