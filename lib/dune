@@ -3,4 +3,4 @@
   (public_name orgaf)
   (libraries
     angstrom faraday)
-  (flags (:standard -safe-string)))
+  (flags (:standard -safe-string -w -30)))
