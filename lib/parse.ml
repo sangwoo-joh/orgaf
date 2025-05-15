@@ -1,4 +1,4 @@
-module A = Angstrom
+open Angstrom
 
 module Primitive = struct
   let is_blank = function
@@ -19,11 +19,10 @@ end
 
 module P = Primitive
 
-let unit = A.return ()
+let unit = return ()
 
 let digit =
-  let open A in
-  A.satisfy P.is_digit
+  satisfy P.is_digit
   >>| function
   | '0' -> 0
   | '1' -> 1
@@ -39,8 +38,7 @@ let digit =
 ;;
 
 let stars =
-  let open A in
-  A.take_while P.is_star
+  take_while P.is_star
   >>= fun raw_stars ->
   if String.length raw_stars = 0
   then fail "no stars"
@@ -49,4 +47,4 @@ let stars =
   else return (String.length raw_stars)
 ;;
 
-let colon = A.char ':'
+let colon = char ':'
