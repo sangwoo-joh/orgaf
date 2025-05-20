@@ -2,7 +2,12 @@ open Angstrom
 
 module Primitive = struct
   let is_blank = function
-    | ' ' | '\t' | '\n' | '\r' -> true
+    | ' ' | '\t' -> true
+    | _ -> false
+  ;;
+
+  let is_newline = function
+    | '\n' | '\r' -> true
     | _ -> false
   ;;
 
