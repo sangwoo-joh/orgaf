@@ -53,3 +53,9 @@ let stars =
 ;;
 
 let colon = char ':'
+let blanks = skip_while P.is_blank
+let optional_blanks = option () blanks
+let eol = end_of_line
+let eol_or_eof = eol <|> end_of_input
+let take_till_eol = take_till P.is_newline
+let blank_line = blanks *> eol
