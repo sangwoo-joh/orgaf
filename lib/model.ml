@@ -55,3 +55,5 @@ and lesser_element =
   | Node_Property of string
   | Paragraph of string
   | Table_Row of string
+
+type t = element list
