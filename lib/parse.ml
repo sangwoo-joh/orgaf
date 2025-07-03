@@ -1,4 +1,5 @@
 open Angstrom
+module M = Model
 
 module Primitive = struct
   let is_blank = function
@@ -59,3 +60,15 @@ let eol = end_of_line
 let eol_or_eof = eol <|> end_of_input
 let take_till_eol = take_till P.is_newline
 let blank_line = blanks *> eol
+
+(** parse until it ends with [s]*)
+let take_till_string_non_greedy s =
+  let rec forward acc =
+    peek_string (String.length s)
+    >>= fun current ->
+    if current = s
+    then return (String.concat "" (List.rev acc))
+    else any_char >>= fun c -> forward (String.make 1 c :: acc)
+  in
+  forward []
+;;

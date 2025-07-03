@@ -1,71 +1,100 @@
+(* TODO: make types more rich *)
+
 open Sexplib.Std
 
 type element =
   (* syntactic components that at the same or greater than a paragraph *)
-  | Elt_Heading of heading_info
-  | Elt_Zeroth_Section of zeroth_section_info
-  | Elt_Section of section_info
-  | Elt_Greater_Element of greater_element_info
-  | Elt_Lesser_Element of lesser_element_info
+  | Elt_Heading of heading
+  | Elt_Zeroth_Section of zeroth_section
+  | Elt_Section of section
+  | Elt_Greater_Element of greater_element * affiliated_keyword list
+  | Elt_Lesser_Element of lesser_element * affiliated_keyword list
 [@@deriving sexp]
 
 and object_ =
   | Obj_Plain_text of string
-  | Obj_Entity of entity_info
-  | Obj_Latex_Fragment of latex_fragment_info
-  | Obj_Export_Snippet of export_snippet_info
-  | Obj_Footnote_Reference of footnote_reference_info
-  | Obj_Citation of citation_info
-  | Obj_Citation_Reference of citation_reference_info
-  | Obj_Inline_Babel_Call of inline_babel_call_info
-  | Obj_Inline_Source_Block of inline_source_block_info
+  | Obj_Entity of entity
+  | Obj_Latex_Fragment of latex_fragment
+  | Obj_Export_Snippet of export_snippet
+  | Obj_Footnote_Reference of footnote_reference
+  | Obj_Citation of citation
+  | Obj_Citation_Reference of citation_reference
+  | Obj_Inline_Babel_Call of inline_babel_call
+  | Obj_Inline_Source_Block of inline_source_block
   | Obj_Line_Break
-  | Obj_Link of link_info
-  | Obj_Macro of macro_info
-  | Obj_Target of target_info
-  | Obj_Radio_Target of radio_target_info
-  | Obj_Statistics_Cookie of statistics_cookie_info
-  | Obj_Subscript of script_info
-  | Obj_Superscript of script_info
-  | Obj_Table_Cell of table_cell_info
-  | Obj_Timestamp of timestamp_info
-  | Obj_Text_Markup of text_markup_info
+  | Obj_Link of link
+  | Obj_Macro of macro
+  | Obj_Target of target
+  | Obj_Radio_Target of radio_target
+  | Obj_Statistics_Cookie of statistics_cookie
+  | Obj_Subscript of script
+  | Obj_Superscript of script
+  | Obj_Table_Cell of table_cell
+  | Obj_Timestamp of timestamp
+  | Obj_Text_Markup of text_markup
 
-and heading_info =
-  { stars : int
+and heading =
+  { level : int
   ; keyword : string option
   ; priority : string option
   ; comment : bool
   ; title : string option
   ; tags : string list
-  ; section : section_info option
+  ; section : section option
+  ; children : heading list (* is this allowed? *)
   }
 
-and zeroth_section_info =
+and zeroth_section =
   { (* All elements before the first heading in a document lie in a special section called the *zeroth section*. *)
-    section : section_info
+    section : section
   ; property_drawer : string option
   ; comments : string option
   }
 
-and section_info =
+and section =
   { (* Sections contain one or more non-heading elements. *)
-    content : element list (* except for heading *)
+    contents : element list (* except for heading *)
   }
 
-(* TODO: make types more rich *)
-and greater_element_info =
-  | Gelt_Greater_Block of string
-  | Gelt_Drawer of string
-  | Gelt_Property_Drawer of string
-  | Gelt_Dynamic_Block of string
-  | Gelt_Footnote_Definition of string
-  | Gelt_Inlinetask of string
-  | Gelt_Item of string
-  | Gelt_Plain_List of string
-  | Gelt_Table of string
+and greater_element =
+  | Gelt_Greater_Block of
+      { name : string
+      ; subtype : [ `Center | `Quote | `Special of string ]
+      ; parameters : string option
+      ; contents : element list
+      }
+  | Gelt_Drawer of
+      { name : string
+      ; contents : element list (* except another drawer *)
+      }
+  | Gelt_Property_Drawer of { contents : node_property list }
+  | Gelt_Dynamic_Block of
+      { name : string
+      ; parameters : string option
+      ; contents : element list
+      }
+  | Gelt_Footnote_Definition of
+      { label : string
+      ; contents : element list
+      }
+  | Gelt_Inlinetask of
+      { contents : heading
+      ; optional_elements : element list
+        (* when level >= org-inlinetask-min-level && no optional components && END *)
+      }
+  | Gelt_Item of item
+  | Gelt_Plain_List of
+      { subtype : [ `Ordered | `Descriptive | `Unordered ]
+      ; contents : item list
+      ; level : int
+      }
+  | Gelt_Table of
+      { subtype : [ `Org | `Table_dot_el ]
+      ; rows : table_row list
+      ; formulas : string list
+      }
 
-and lesser_element_info =
+and lesser_element =
   | Lelt_Block of string
   | Lelt_Clock of string
   | Lelt_Diary_Sexp of string
@@ -79,22 +108,52 @@ and lesser_element_info =
   | Lelt_Paragraph of string
   | Lelt_Table_Row of string
 
-and entity_info = string
-and latex_fragment_info = string
-and export_snippet_info = string
-and footnote_reference_info = string
-and citation_info = string
-and citation_reference_info = string
-and inline_babel_call_info = string
-and inline_source_block_info = string
-and link_info = string
-and macro_info = string
-and target_info = string
-and radio_target_info = string
-and statistics_cookie_info = string
-and script_info = string
-and table_cell_info = string
-and timestamp_info = string
-and text_markup_info = string
+and entity = string
+and latex_fragment = string
+and export_snippet = string
+and footnote_reference = string
+and citation = string
+and citation_reference = string
+and inline_babel_call = string
+and inline_source_block = string
+and link = string
+and macro = string
+and target = string
+and radio_target = string
+and statistics_cookie = string
+and script = string
+and timestamp = string
+and text_markup = string
+
+and affiliated_keyword =
+  { key : string
+  ; optval : string option
+  ; value_raw : string
+  ; value_parsed : object_ list option
+  }
+
+and node_property =
+  { name : string
+  ; value : string option
+  }
+
+and item =
+  { bullet : string
+  ; counter_set : string option
+  ; check_box : [ `Whitespace | `X | `Hyphen ] option
+  ; tag : object_ list
+  ; contents : element list
+  }
+
+and table_row =
+  { subtype : [ `Standard | `Rule ]
+  ; cells : table_cell list
+  }
+
+and table_cell =
+  { contents : object_ list
+  ; spaces : string option
+  ; eol : string
+  }
 
 type t = element list
