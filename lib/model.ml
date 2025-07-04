@@ -101,10 +101,17 @@ and lesser_element =
   | Lelt_Planning of planning
   | Lelt_Comment of string
   | Lelt_Fixed_Width_Area of string
-  | Lelt_Horizontal_Rule of string
-  | Lelt_Keyword of string * string
-  | Lelt_LaTeX_Environment of string
-  | Lelt_Node_Property of string
+  | Lelt_Horizontal_Rule
+  | Lelt_Keyword of {
+      key: string;
+      value: string;
+    }
+  | Lelt_LaTeX_Environment of {
+      name: string;
+      extra: string option;
+      contents: string option;
+    }
+  | Lelt_Node_Property of node_property
   | Lelt_Paragraph of string
   | Lelt_Table_Row of string
 
