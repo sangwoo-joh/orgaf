@@ -95,10 +95,10 @@ and greater_element =
       }
 
 and lesser_element =
-  | Lelt_Block of string
-  | Lelt_Clock of string
+  | Lelt_Block of block
+  | Lelt_Clock of clock
   | Lelt_Diary_Sexp of string
-  | Lelt_Planning of string
+  | Lelt_Planning of planning
   | Lelt_Comment of string
   | Lelt_Fixed_Width_Area of string
   | Lelt_Horizontal_Rule of string
@@ -107,6 +107,48 @@ and lesser_element =
   | Lelt_Node_Property of string
   | Lelt_Paragraph of string
   | Lelt_Table_Row of string
+
+and block =
+  | Comment_Block of
+      { data : string option
+      ; contents : string option
+      }
+  | Example_Block of
+      { data : string option
+      ; contents : string option
+      }
+  | Export_Block of
+      { data : string (* mandatory *)
+      ; contents : string option
+      }
+  | Source_Block of
+      { language : string
+      ; switches : string
+      ; arguments : string
+      ; contents : string option
+      }
+  | Verse_Block of
+      { data : string option
+      ; contents : object_ list
+      }
+
+and clock =
+  | Inactive_Timestamp of timestamp
+  | Inactive_Timestamp_Range of timestamp
+  | Duration of
+      { hh : int
+      ; mm : int
+      }
+
+and planning =
+  { heading : heading
+  ; plannings : planning_info list
+  }
+
+and planning_info =
+  { keyword : [ `Deadline | `Scheduled | `Closed ]
+  ; timestamp : timestamp
+  }
 
 and entity = string
 and latex_fragment = string
