@@ -4,59 +4,59 @@ open Sexplib.Std
 
 type element =
   (* syntactic components that at the same or greater than a paragraph *)
-  | Elt_Heading of heading
-  | Elt_Zeroth_Section of zeroth_section
-  | Elt_Section of section
-  | Elt_Greater_Element of greater_element * affiliated_keyword list
-  | Elt_Lesser_Element of lesser_element * affiliated_keyword list
+  | Elt_Heading of heading_info
+  | Elt_Zeroth_Section of zeroth_section_info
+  | Elt_Section of section_info
+  | Elt_Greater_Element of greater_element_info * affiliated_keyword_info list
+  | Elt_Lesser_Element of lesser_element_info * affiliated_keyword_info list
 [@@deriving sexp]
 
 and object_ =
   | Obj_Plain_text of string
-  | Obj_Entity of entity
-  | Obj_Latex_Fragment of latex_fragment
-  | Obj_Export_Snippet of export_snippet
-  | Obj_Footnote_Reference of footnote_reference
-  | Obj_Citation of citation
-  | Obj_Citation_Reference of citation_reference
-  | Obj_Inline_Babel_Call of inline_babel_call
-  | Obj_Inline_Source_Block of inline_source_block
+  | Obj_Entity of entity_info
+  | Obj_Latex_Fragment of latex_fragment_info
+  | Obj_Export_Snippet of export_snippet_info
+  | Obj_Footnote_Reference of footnote_reference_info
+  | Obj_Citation of citation_info
+  | Obj_Citation_Reference of citation_reference_info
+  | Obj_Inline_Babel_Call of inline_babel_call_info
+  | Obj_Inline_Source_Block of inline_source_block_info
   | Obj_Line_Break
-  | Obj_Link of link
-  | Obj_Macro of macro
-  | Obj_Target of target
-  | Obj_Radio_Target of radio_target
-  | Obj_Statistics_Cookie of statistics_cookie
-  | Obj_Subscript of script
-  | Obj_Superscript of script
-  | Obj_Table_Cell of table_cell
-  | Obj_Timestamp of timestamp
-  | Obj_Text_Markup of text_markup
+  | Obj_Link of link_info
+  | Obj_Macro of macro_info
+  | Obj_Target of target_info
+  | Obj_Radio_Target of radio_target_info
+  | Obj_Statistics_Cookie of statistics_cookie_info
+  | Obj_Subscript of script_info
+  | Obj_Superscript of script_info
+  | Obj_Table_Cell of table_cell_info
+  | Obj_Timestamp of timestamp_info
+  | Obj_Text_Markup of text_markup_info
 
-and heading =
+and heading_info =
   { level : int
   ; keyword : string option
   ; priority : string option
   ; comment : bool
   ; title : string option
   ; tags : string list
-  ; section : section option
-  ; children : heading list (* is this allowed? *)
+  ; section : section_info option
+  ; children : heading_info list (* is this allowed? *)
   }
 
-and zeroth_section =
-  { (* All elements before the first heading in a document lie in a special section called the *zeroth section*. *)
-    section : section
+and zeroth_section_info =
+  { (* All elements before the first heading_info in a document lie in a special section_info called the *zeroth section_info*. *)
+    section : section_info
   ; property_drawer : string option
   ; comments : string option
   }
 
-and section =
-  { (* Sections contain one or more non-heading elements. *)
-    contents : element list (* except for heading *)
+and section_info =
+  { (* Sections contain one or more non-heading_info elements. *)
+    contents : element list (* except for heading_info *)
   }
 
-and greater_element =
+and greater_element_info =
   | Gelt_Greater_Block of
       { name : string
       ; subtype : [ `Center | `Quote | `Special of string ]
@@ -67,7 +67,7 @@ and greater_element =
       { name : string
       ; contents : element list (* except another drawer *)
       }
-  | Gelt_Property_Drawer of { contents : node_property list }
+  | Gelt_Property_Drawer of { contents : node_property_info list }
   | Gelt_Dynamic_Block of
       { name : string
       ; parameters : string option
@@ -78,27 +78,27 @@ and greater_element =
       ; contents : element list
       }
   | Gelt_Inlinetask of
-      { contents : heading
+      { contents : heading_info
       ; optional_elements : element list
       (* when level >= org-inlinetask-min-level && no optional components && END *)
       }
-  | Gelt_Item of item
+  | Gelt_Item of item_info
   | Gelt_Plain_List of
       { subtype : [ `Ordered | `Descriptive | `Unordered ]
-      ; contents : item list
+      ; contents : item_info list
       ; level : int
       }
   | Gelt_Table of
       { subtype : [ `Org | `Table_dot_el ]
-      ; rows : table_row list
+      ; rows : table_row_info list
       ; formulas : string list
       }
 
-and lesser_element =
-  | Lelt_Block of block
-  | Lelt_Clock of clock
+and lesser_element_info =
+  | Lelt_Block of block_info
+  | Lelt_Clock of clock_info
   | Lelt_Diary_Sexp of string
-  | Lelt_Planning of planning
+  | Lelt_Planning of planning_info
   | Lelt_Comment of string
   | Lelt_Fixed_Width_Area of string
   | Lelt_Horizontal_Rule
@@ -111,11 +111,11 @@ and lesser_element =
       ; extra : string option
       ; contents : string option
       }
-  | Lelt_Node_Property of node_property
+  | Lelt_Node_Property of node_property_info
   | Lelt_Paragraph of string
-  | Lelt_Table_Row of table_row
+  | Lelt_Table_Row of table_row_info
 
-and block =
+and block_info =
   | Comment_Block of
       { data : string option
       ; contents : string option
@@ -139,72 +139,72 @@ and block =
       ; contents : object_ list
       }
 
-and clock =
-  | Inactive_Timestamp of timestamp
-  | Inactive_Timestamp_Range of timestamp
+and clock_info =
+  | Inactive_Timestamp of timestamp_info
+  | Inactive_Timestamp_Range of timestamp_info
   | Duration of
       { hh : int
       ; mm : int
       }
 
-and planning =
-  { heading : heading
-  ; plannings : planning_info list
-  }
-
 and planning_info =
-  { keyword : [ `Deadline | `Scheduled | `Closed ]
-  ; timestamp : timestamp
+  { heading : heading_info
+  ; plannings : planning_data list
   }
 
-and entity =
+and planning_data =
+  { keyword : [ `Deadline | `Scheduled | `Closed ]
+  ; timestamp : timestamp_info
+  }
+
+and entity_info =
   { name : string
   ; post : string
   ; spaces : string
   }
 
-and latex_fragment =
+and latex_fragment_info =
   { name : string
   ; brackets : string option
   ; contents : string
   }
 
-and export_snippet =
+and export_snippet_info =
   { backend : string
   ; value : string option
   }
 
-and footnote_reference =
+and footnote_reference_info =
   { label : string
   ; definition : object_ list
   }
 
-and citation = string
-and citation_reference = string
-and inline_babel_call = string
-and inline_source_block = string
-and link = string
-and macro = string
-and target = string
-and radio_target = string
-and statistics_cookie = string
-and script = string
-and timestamp = string
-and text_markup = string
+and citation_info = string
+and citation_reference_info = string
+and inline_babel_call_info = string
+and inline_source_block_info = string
+and link_info = string
+and macro_info = string
+and target_info = string
+and radio_target_info = string
+and statistics_cookie_info = string
+and script_info = string
+and timestamp_info = string
+and text_markup_info = string
 
-and affiliated_keyword =
+and affiliated_keyword_info =
   { key : string
   ; optval : string option
   ; value_raw : string
   ; value_parsed : object_ list option
   }
 
-and node_property =
+and node_property_info =
   { name : string
   ; value : string option
   }
 
-and item =
+and item_info =
   { bullet : string
   ; counter_set : string option
   ; check_box : [ `Whitespace | `X | `Hyphen ] option
@@ -212,12 +212,12 @@ and item =
   ; contents : element list
   }
 
-and table_row =
+and table_row_info =
   { subtype : [ `Standard | `Rule ]
-  ; cells : table_cell list
+  ; cells : table_cell_info list
   }
 
-and table_cell =
+and table_cell_info =
   { contents : object_ list
   ; spaces : string option
   ; eol : string
