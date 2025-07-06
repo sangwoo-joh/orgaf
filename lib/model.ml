@@ -140,8 +140,7 @@ and block_info =
       }
 
 and clock_info =
-  | Inactive_Timestamp of timestamp_info
-  | Inactive_Timestamp_Range of timestamp_info
+  | Timestamp of timestamp_info (* intacive or inactive range only *)
   | Duration of
       { hh : int
       ; mm : int
@@ -188,9 +187,44 @@ and macro_info = string
 and target_info = string
 and radio_target_info = string
 and statistics_cookie_info = string
-and script_info = string
-and timestamp_info = string
-and text_markup_info = string
+
+and script_info =
+  { char : char
+  ; script : script_data
+  }
+
+and script_data =
+  | Asterisk
+  | Structured of object_ list
+  | Pattern of
+      { sign : char option
+      ; chars : string option
+      ; final : char
+      }
+
+and timestamp_info =
+  | Active of timestamp_data
+  | Inactive of timestamp_data
+  | Active_Range of timestamp_data * timestamp_data
+  | Inactive_Range of timestamp_data * timestamp_data
+  | Diary of string (* sexp *)
+
+and timestamp_data =
+  { year : int
+  ; month : int
+  ; day : int
+  ; day_name : string option
+  ; hour : int option
+  ; minute : int option
+  ; repeater_raw : string option (* TODO *)
+  ; delay_raw : string option (* TODO *)
+  }
+
+and text_markup_info =
+  { marker :
+      [ `Bold | `Italic | `Underline | `Verbatim | `Code | `Strike_Through ]
+  ; contents : [ `String of string | `Standard of object_ list ]
+  }
 
 and affiliated_keyword_info =
   { key : string
