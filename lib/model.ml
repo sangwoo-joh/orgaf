@@ -113,7 +113,7 @@ and lesser_element =
       }
   | Lelt_Node_Property of node_property
   | Lelt_Paragraph of string
-  | Lelt_Table_Row of string
+  | Lelt_Table_Row of table_row
 
 and block =
   | Comment_Block of
@@ -157,10 +157,28 @@ and planning_info =
   ; timestamp : timestamp
   }
 
-and entity = string
-and latex_fragment = string
-and export_snippet = string
-and footnote_reference = string
+and entity =
+  { name : string
+  ; post : string
+  ; spaces : string
+  }
+
+and latex_fragment =
+  { name : string
+  ; brackets : string option
+  ; contents : string
+  }
+
+and export_snippet =
+  { backend : string
+  ; value : string option
+  }
+
+and footnote_reference =
+  { label : string
+  ; definition : object_ list
+  }
+
 and citation = string
 and citation_reference = string
 and inline_babel_call = string
