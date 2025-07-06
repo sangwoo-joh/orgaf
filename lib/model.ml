@@ -80,7 +80,7 @@ and greater_element =
   | Gelt_Inlinetask of
       { contents : heading
       ; optional_elements : element list
-        (* when level >= org-inlinetask-min-level && no optional components && END *)
+      (* when level >= org-inlinetask-min-level && no optional components && END *)
       }
   | Gelt_Item of item
   | Gelt_Plain_List of
@@ -102,15 +102,15 @@ and lesser_element =
   | Lelt_Comment of string
   | Lelt_Fixed_Width_Area of string
   | Lelt_Horizontal_Rule
-  | Lelt_Keyword of {
-      key: string;
-      value: string;
-    }
-  | Lelt_LaTeX_Environment of {
-      name: string;
-      extra: string option;
-      contents: string option;
-    }
+  | Lelt_Keyword of
+      { key : string
+      ; value : string
+      }
+  | Lelt_LaTeX_Environment of
+      { name : string
+      ; extra : string option
+      ; contents : string option
+      }
   | Lelt_Node_Property of node_property
   | Lelt_Paragraph of string
   | Lelt_Table_Row of string
