@@ -94,6 +94,17 @@ let eol = end_of_line
 let eol_or_eof = eol <|> end_of_input
 let take_till_eol = take_till P.is_newline
 let blank_line = blanks *> eol
+let lbracket = char '['
+let rbracket = char ']'
+let lparen = char '('
+let rparen = char ')'
+let lbrace = char '{'
+let rbrace = char '}'
+let slash = char '/'
+let backslash = char '\\'
+let underscore = char '_'
+let dash = char '-'
+let is_valid_entity_name s = List.mem s A.valid_entities
 
 (** parse until it ends with [s]*)
 let take_till_string_non_greedy s =
