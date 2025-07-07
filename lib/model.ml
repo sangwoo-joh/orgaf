@@ -151,15 +151,74 @@ and footnote_reference_info =
   ; definition : object_ list
   }
 
-and citation_info = string
-and citation_reference_info = string
-and inline_babel_call_info = string
-and inline_source_block_info = string
-and link_info = string
-and macro_info = string
-and target_info = string
-and radio_target_info = string
-and statistics_cookie_info = string
+and citation_info =
+  { cite_style : string option (* TODO *)
+  ; global_prefix : string option
+  ; referecnes : citation_reference_info list
+  ; global_suffix : string option
+  }
+
+and citation_reference_info =
+  { key_prefix : object_ list (* minimal set *)
+  ; key : string
+  ; key_suffix : object_ list (* minimal set*)
+  }
+
+and inline_babel_call_info =
+  { name : string
+  ; arguments : string
+  ; header1 : string option
+  ; header2 : string option
+  }
+
+and inline_source_block_info =
+  { language : string
+  ; headers : string option
+  ; body : string
+  }
+
+and link_info =
+  | Radio of
+      { pre : char
+      ; radio : object_ (* radio target or minimal set *)
+      ; post : char
+      }
+  | Plain of
+      { pre : char
+      ; linktype : string
+      ; pathplain : string
+      ; post : char
+      }
+  | Angle of
+      { linktype : string
+      ; pathangle : string
+      }
+  | Regular of
+      { pathreg : annotated_pattern
+      ; description : object_ list
+      }
+
+and annotated_pattern =
+  | File_Name of string
+  | Link_Type of string
+  | Path_Inner of string
+  | Custom_ID of string
+  | Code_Ref of string
+  | Fuzzy of string
+
+and macro_info =
+  { name : string
+  ; arguments : string option
+  }
+
+and target_info = { target : string }
+and radio_target_info = { contents : object_ list }
+
+and statistics_cookie_info =
+  { percent : int option
+  ; num1 : int option
+  ; num2 : int option
+  }
 
 and script_info =
   { char : char
