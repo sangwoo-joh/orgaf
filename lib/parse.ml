@@ -166,6 +166,17 @@ let parse_entity =
   *> choice [ parse_braced_entity; parse_whitespace_entity; parse_post_entity ]
 ;;
 
+let markup_pre_condition =
+  at_end_of_input
+  >>= function
+  | true -> return ()
+  | false ->
+    peek_char_fail
+    >>= (function
+     | ' ' | '\t' | '\n' | '\r' | '-' | '(' | '{' | '\'' | '"' -> return ()
+     | _ -> fail "unsatisfied PRE condition of Markup")
+;;
+
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
 let parse_footnote_reference = failwith "not implemented"
