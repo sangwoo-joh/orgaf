@@ -167,6 +167,12 @@ let parse_entity =
 ;;
 
 let markup_pre_condition =
+  (* FIXME: Current implementation has limitation. org-syntax defines PRE as a
+     character *before* the MARKER, but the current implementation checks the
+     character *after* the MARKER, i.e., the first character of CONTENTS. For
+     example, in hello*world*, character 'o' precedes '*', thus it is not PRE,
+     but the current implementation sees 'w' after '*' and wrongly says it meets
+     the condition. *)
   at_end_of_input
   >>= function
   | true -> return ()
