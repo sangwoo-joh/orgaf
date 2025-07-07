@@ -124,11 +124,7 @@ and planning_data =
   ; timestamp : timestamp_info
   }
 
-and entity_info =
-  { name : string
-  ; post : string
-  ; spaces : string
-  }
+and entity_info = { name : string }
 
 and latex_fragment_info =
   { name : string
