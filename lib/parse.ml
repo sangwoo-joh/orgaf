@@ -315,6 +315,24 @@ let parse_annotated_pattern =
     ]
 ;;
 
+let parse_regular_link (self_parse_object : M.object_ t) =
+  let parse_desc = string "][" *> many self_parse_object in
+  let with_desc =
+    string "[["
+    *> lift2
+         (fun pathreg description -> M.Regular_Link { pathreg; description })
+         parse_annotated_pattern
+         parse_desc
+    <* string "]]"
+  in
+  let without_desc =
+    string "[[" *> parse_annotated_pattern
+    <* string "]]"
+    >>| fun pathreg -> M.Regular_Link { pathreg; description = [] }
+  in
+  choice [ with_desc; without_desc ]
+;;
+
 let parse_link = failwith "not implemented"
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
