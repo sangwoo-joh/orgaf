@@ -286,7 +286,7 @@ let parse_link_parameter =
     (take_while1 (function
       | ':' | '/' | ']' -> false
       | _ -> true))
-    ((string "://" <|> string ":") *> take_while (fun c -> c <> ']'))
+    ((string "://" <|> string ":") *> take_while until_bracket_closed)
 ;;
 
 let parse_link = failwith "not implemented"
