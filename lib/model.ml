@@ -196,7 +196,7 @@ and annotated_pattern =
       ; pathinner : string
       }
   | Id of string
-  | Custom_ID of string
+  | Custom_Id of string
   | Code_Ref of string
   | Fuzzy_Or_File of string
 
