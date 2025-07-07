@@ -120,6 +120,7 @@ let take_till_string_non_greedy s =
 
 (*******************************************************************************************)
 (* Parser Implementations *)
+(* NOTE: the order of sub parsers in [choice] is important: it is the order of priority. *)
 (*******************************************************************************************)
 
 let parse_plain_text =
@@ -165,12 +166,7 @@ let parse_post_entity =
 
 let parse_entity =
   backslash
-  *> choice
-       [ (* the order here matters - priority *)
-         parse_braced_entity
-       ; parse_whitespace_entity
-       ; parse_post_entity
-       ]
+  *> choice [ parse_braced_entity; parse_whitespace_entity; parse_post_entity ]
 ;;
 
 let parse_latex_fragment = failwith "not implemented"
@@ -181,7 +177,6 @@ let parse_citation_reference = failwith "not implemented"
 
 let parse_object =
   choice
-    (* NOTE: order matters here - priority *)
     [ parse_text_markup
     ; parse_link
     ; parse_entity
