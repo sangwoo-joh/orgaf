@@ -96,13 +96,10 @@ let take_till_eol = take_till P.is_newline
 let blank_line = whitespaces *> eol
 let lbracket = char '['
 let rbracket = char ']'
-let until_bracket_closed c = c <> ']'
 let lparen = char '('
 let rparen = char ')'
-let until_paren_closed c = c <> ')'
 let lbrace = char '{'
 let rbrace = char '}'
-let until_brace_closed c = c <> '}'
 let slash = char '/'
 let backslash = char '\\'
 let underscore = char '_'
@@ -286,15 +283,15 @@ let parse_link_parameter =
     (take_while1 (function
       | ':' | '/' | ']' -> false
       | _ -> true))
-    ((string "://" <|> string ":") *> take_while until_bracket_closed)
+    ((string "://" <|> string ":") *> take_while (fun c -> c <> ']'))
 ;;
 
 let parse_link_id =
-  string "id:" *> take_while until_bracket_closed >>| fun id -> M.Id id
+  string "id:" *> take_while (fun c -> c <> ']') >>| fun id -> M.Id id
 ;;
 
 let parse_link_custom_id =
-  char '#' *> take_while until_bracket_closed >>| fun id -> M.Custom_Id id
+  char '#' *> take_while (fun c -> c <> ']') >>| fun id -> M.Custom_Id id
 ;;
 
 let parse_link = failwith "not implemented"
