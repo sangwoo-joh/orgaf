@@ -1,5 +1,4 @@
 open Angstrom
-module M = Model
 
 module Primitive = struct
   let is_blank = function
@@ -24,6 +23,8 @@ module Primitive = struct
 end
 
 module P = Primitive
+module M = Model
+module A = Appendix
 
 let unit = return ()
 
