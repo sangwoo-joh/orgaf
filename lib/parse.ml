@@ -174,7 +174,102 @@ let markup_pre_condition =
     peek_char_fail
     >>= (function
      | ' ' | '\t' | '\n' | '\r' | '-' | '(' | '{' | '\'' | '"' -> return ()
-     | _ -> fail "unsatisfied PRE condition of Markup")
+     | _ -> fail "invalid PRE condition of Markup")
+;;
+
+let markup_post_condition =
+  at_end_of_input
+  >>= function
+  | true -> return ()
+  | false ->
+    peek_char_fail
+    >>= (function
+     | ' '
+     | '\t'
+     | '\n'
+     | '\r'
+     | '-'
+     | '.'
+     | ','
+     | ';'
+     | ':'
+     | '!'
+     | '?'
+     | '\''
+     | ')'
+     | '}'
+     | '['
+     | '"'
+     | '\\' -> return ()
+     | _ -> fail "invalid POST condition of Markup")
+;;
+
+let parse_markup_string_contents ~marker =
+  (* when marker is code or verbatim *)
+  take_till (fun c -> c = marker)
+  >>= fun content ->
+  if
+    String.starts_with ~prefix:" " content
+    || String.ends_with ~suffix:" " content
+  then fail "Verbatim/Code contents cannot start or end with whitespace"
+  else return (`String content)
+;;
+
+let parse_markup_standard_contents (self_parse_object : M.object_ t) =
+  many1 self_parse_object >>= fun objects -> return (`Standard objects)
+;;
+
+let parse_text_markup (self_parse_object : M.object_ t) =
+  let aux_markup_parser ~marker ~markertype parser =
+    markup_pre_condition *> char marker *> parser
+    <* char marker
+    <* markup_post_condition
+    >>| fun contents -> M.Obj_Text_Markup { markertype; contents }
+  in
+  let parse_bold =
+    aux_markup_parser
+      ~marker:'*'
+      ~markertype:`Bold
+      (parse_markup_standard_contents self_parse_object)
+  in
+  let parse_italic =
+    aux_markup_parser
+      ~marker:'/'
+      ~markertype:`Italic
+      (parse_markup_standard_contents self_parse_object)
+  in
+  let parse_underline =
+    aux_markup_parser
+      ~marker:'_'
+      ~markertype:`Underline
+      (parse_markup_standard_contents self_parse_object)
+  in
+  let parse_strike_through =
+    aux_markup_parser
+      ~marker:'+'
+      ~markertype:`Strike_Through
+      (parse_markup_standard_contents self_parse_object)
+  in
+  let parse_code =
+    aux_markup_parser
+      ~marker:'~'
+      ~markertype:`Code
+      (parse_markup_string_contents ~marker:'~')
+  in
+  let parse_verbatim =
+    aux_markup_parser
+      ~marker:'='
+      ~markertype:`Verbatim
+      (parse_markup_string_contents ~marker:'=')
+  in
+  choice
+    [ parse_bold
+    ; parse_italic
+    ; parse_underline
+    ; parse_strike_through
+    ; parse_code
+    ; parse_verbatim
+    ]
 ;;
 
 let parse_latex_fragment = failwith "not implemented"
@@ -193,21 +288,21 @@ let parse_radio_target = failwith "not implemented"
 let parse_staistics_cookie = failwith "not implemented"
 let parse_table_cell = failwith "not implemented"
 let parse_timestamp = failwith "not implemented"
-let parse_text_markup = failwith "not implemented"
 let parse_link = failwith "not implemented"
 
 let parse_object =
-  choice
-    [ parse_text_markup
-    ; parse_link
-    ; parse_entity
-    ; parse_latex_fragment
-    ; parse_export_snippet
-    ; parse_footnote_reference
-    ; parse_citation
-    ; parse_citation_reference
-    ; parse_superscript
-    ; parse_subscript
-    ; parse_plain_text (* should be the last *)
-    ]
+  fix (fun self_parse_object ->
+    choice
+      [ parse_text_markup self_parse_object
+      ; parse_link
+      ; parse_entity
+      ; parse_latex_fragment
+      ; parse_export_snippet
+      ; parse_footnote_reference
+      ; parse_citation
+      ; parse_citation_reference
+      ; parse_superscript
+      ; parse_subscript
+      ; parse_plain_text (* should be the last *)
+      ])
 ;;
