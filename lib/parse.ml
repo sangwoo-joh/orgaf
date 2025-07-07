@@ -88,12 +88,12 @@ let stars =
 ;;
 
 let colon = char ':'
-let blanks = skip_while P.is_blank
-let optional_blanks = option () blanks
+let whitespaces = skip_while P.is_blank
+let optional_whitespaces = option () whitespaces
 let eol = end_of_line
 let eol_or_eof = eol <|> end_of_input
 let take_till_eol = take_till P.is_newline
-let blank_line = blanks *> eol
+let blank_line = whitespaces *> eol
 let lbracket = char '['
 let rbracket = char ']'
 let lparen = char '('
