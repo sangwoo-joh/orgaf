@@ -278,6 +278,16 @@ let parse_text_markup (self_parse_object : M.object_ t) =
     ]
 ;;
 
+let parse_link_parameter =
+  lift2
+    (fun linktype pathinner -> M.Hypertext { linktype; pathinner })
+    (take_while1 (function
+       | ':' | '/' | ']' -> false
+       | _ -> true))
+    ((string "://" <|> string ":") *> take_while (fun c -> c <> ']'))
+;;
+
+let parse_link = failwith "not implemented"
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
 let parse_footnote_reference = failwith "not implemented"
@@ -294,7 +304,6 @@ let parse_radio_target = failwith "not implemented"
 let parse_staistics_cookie = failwith "not implemented"
 let parse_table_cell = failwith "not implemented"
 let parse_timestamp = failwith "not implemented"
-let parse_link = failwith "not implemented"
 
 let parse_object =
   fix (fun self_parse_object ->
