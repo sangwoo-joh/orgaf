@@ -1,9 +1,6 @@
-(* TODO: make types more rich *)
-
 open Sexplib.Std
 
 type element =
-  (* syntactic components that at the same or greater than a paragraph *)
   | Elt_Heading of heading_info
   | Elt_Zeroth_Section of zeroth_section_info
   | Elt_Section of section_info
@@ -41,20 +38,16 @@ and heading_info =
   ; title : string option
   ; tags : string list
   ; section : section_info option
-  ; children : heading_info list (* is this allowed? *)
+  ; children : heading_info list
   }
 
 and zeroth_section_info =
-  { (* All elements before the first heading_info in a document lie in a special section_info called the *zeroth section_info*. *)
-    section : section_info
+  { section : section_info
   ; property_drawer : string option
   ; comments : string option
   }
 
-and section_info =
-  { (* Sections contain one or more non-heading_info elements. *)
-    contents : element list (* except for heading_info *)
-  }
+and section_info = { contents : element list (* except for heading_info *) }
 
 and greater_element_info =
   | Gelt_Greater_Block of greater_block_info
