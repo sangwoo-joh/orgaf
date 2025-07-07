@@ -190,12 +190,15 @@ and link_info =
       }
 
 and annotated_pattern =
-  | File_Name of string
-  | Link_Type of string
-  | Path_Inner of string
+  | Hypertext of
+      { linktype : string
+        (* shell, news, mailto, https, http, ftp, help, file, elisp *)
+      ; pathinner : string
+      }
+  | Id of string
   | Custom_ID of string
   | Code_Ref of string
-  | Fuzzy of string
+  | Fuzzy_Or_File of string
 
 and macro_info =
   { name : string
