@@ -152,10 +152,10 @@ let parse_post_entity =
     let post_condition =
       peek_char
       >>= function
-      | None -> return () (* EOF is valid condition *)
+      | None -> unit (* EOF is valid condition *)
       | Some c ->
         if not (P.is_alpha c)
-        then return ()
+        then unit
         else fail "POST character in entity cannot be alphabetic."
     in
     post_condition *> return (M.Obj_Entity { name }))
@@ -175,18 +175,18 @@ let markup_pre_condition =
      the condition. *)
   at_end_of_input
   >>= function
-  | true -> return ()
+  | true -> unit
   | false ->
     peek_char_fail
     >>= (function
-     | ' ' | '\t' | '\n' | '\r' | '-' | '(' | '{' | '\'' | '"' -> return ()
+     | ' ' | '\t' | '\n' | '\r' | '-' | '(' | '{' | '\'' | '"' -> unit
      | _ -> fail "invalid PRE condition of Markup")
 ;;
 
 let markup_post_condition =
   at_end_of_input
   >>= function
-  | true -> return ()
+  | true -> unit
   | false ->
     peek_char_fail
     >>= (function
@@ -206,7 +206,7 @@ let markup_post_condition =
      | '}'
      | '['
      | '"'
-     | '\\' -> return ()
+     | '\\' -> unit
      | _ -> fail "invalid POST condition of Markup")
 ;;
 
