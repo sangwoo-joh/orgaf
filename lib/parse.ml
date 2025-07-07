@@ -289,6 +289,14 @@ let parse_link_parameter =
     ((string "://" <|> string ":") *> take_while until_bracket_closed)
 ;;
 
+let parse_link_id =
+  string "id:" *> take_while until_bracket_closed >>| fun id -> M.Id id
+;;
+
+let parse_link_custom_id =
+  char '#' *> take_while until_bracket_closed >>| fun id -> M.Custom_Id id
+;;
+
 let parse_link = failwith "not implemented"
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
