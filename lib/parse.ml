@@ -217,9 +217,8 @@ let parse_markup_string_contents ~marker =
   (* when marker is code or verbatim *)
   take_till (fun c -> c = marker)
   >>= fun content ->
-  if
-    String.starts_with ~prefix:" " content
-    || String.ends_with ~suffix:" " content
+  if String.starts_with ~prefix:" " content
+     || String.ends_with ~suffix:" " content
   then fail "Verbatim/Code contents cannot start or end with whitespace"
   else return (`String content)
 ;;
@@ -285,8 +284,8 @@ let parse_link_parameter =
   lift2
     (fun linktype pathinner -> M.Hypertext { linktype; pathinner })
     (take_while1 (function
-       | ':' | '/' | ']' -> false
-       | _ -> true))
+      | ':' | '/' | ']' -> false
+      | _ -> true))
     ((string "://" <|> string ":") *> take_while (fun c -> c <> ']'))
 ;;
 
