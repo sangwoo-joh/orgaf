@@ -117,3 +117,79 @@ let take_till_string_non_greedy s =
   in
   forward []
 ;;
+
+(*******************************************************************************************)
+(* Parser Implementations *)
+(*******************************************************************************************)
+
+let parse_plain_text =
+  take_while1 (fun c -> not (P.is_special_char c))
+  >>| fun text -> M.Obj_Plain_text text
+;;
+
+let parse_text_markup = failwith "not implemented"
+let parse_link = failwith "not implemented"
+
+let parse_braced_entity =
+  take_while1 P.is_alpha
+  >>= fun name ->
+  if is_valid_entity_name name
+  then string "{}" *> return (M.Obj_Entity { name })
+  else fail (Printf.sprintf "'%s' is not a valid entity name." name)
+;;
+
+let parse_whitespace_entity =
+  underscore *> take_while1 P.is_space
+  >>= fun spaces ->
+  let name = "_" ^ spaces in
+  return (M.Obj_Entity { name })
+;;
+
+let parse_post_entity =
+  take_while1 P.is_alpha
+  >>= fun name ->
+  if not (is_valid_entity_name name)
+  then fail (Printf.sprintf "'%s' is not a valid entity name." name)
+  else (
+    let post_condition =
+      peek_char
+      >>= function
+      | None -> return () (* EOF is valid condition *)
+      | Some c ->
+        if not (P.is_alpha c)
+        then return ()
+        else fail "POST character in entity cannot be alphabetic."
+    in
+    post_condition *> return (M.Obj_Entity { name }))
+;;
+
+let parse_entity =
+  backslash
+  *> choice
+       [ (* the order here matters - priority *)
+         parse_braced_entity
+       ; parse_whitespace_entity
+       ; parse_post_entity
+       ]
+;;
+
+let parse_latex_fragment = failwith "not implemented"
+let parse_export_snippet = failwith "not implemented"
+let parse_footnote_reference = failwith "not implemented"
+let parse_citation = failwith "not implemented"
+let parse_citation_reference = failwith "not implemented"
+
+let parse_object =
+  choice
+    (* NOTE: order matters here - priority *)
+    [ parse_text_markup
+    ; parse_link
+    ; parse_entity
+    ; parse_latex_fragment
+    ; parse_export_snippet
+    ; parse_footnote_reference
+    ; parse_citation
+    ; parse_citation_reference
+    ; parse_plain_text (* should be the last *)
+    ]
+;;
