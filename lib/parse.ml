@@ -204,7 +204,7 @@ let parse_standard_object =
     ; parse_latex_fragment
     ; parse_export_snippet
     ; parse_footnote_reference
-    ; parse_citation (* ; parse_citation_reference *)
+    ; parse_citation
     ; parse_superscript
     ; parse_subscript
     ; parse_plain_text (* should be the last *)
