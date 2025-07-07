@@ -244,7 +244,7 @@ and timestamp_data =
   }
 
 and text_markup_info =
-  { marker :
+  { markertype :
       [ `Bold | `Italic | `Underline | `Verbatim | `Code | `Strike_Through ]
   ; contents : [ `String of string | `Standard of object_ list ]
   }
