@@ -31,20 +31,21 @@ and object_ =
   | Obj_Text_Markup of text_markup_info
 
 and heading_info =
-  { level : int
-  ; keyword : string option
-  ; priority : string option
+  { level : int (* stars *)
+  ; keyword : string option (* case sensitive *)
+  ; priority : char option
   ; comment : bool
-  ; title : string option
+  ; title : object_ list
   ; tags : string list
   ; section : section_info option
+  ; planning : planning_info option
   ; children : heading_info list
   }
 
 and zeroth_section_info =
   { section : section_info
-  ; property_drawer : string option
-  ; comments : string option
+  ; property_drawer : property_drawer_info option
+  ; comments : lesser_element_info option
   }
 
 and section_info = { contents : element list (* except for heading_info *) }
@@ -64,21 +65,14 @@ and lesser_element_info =
   | Lelt_Block of block_info
   | Lelt_Clock of clock_info
   | Lelt_Diary_Sexp of string
-  | Lelt_Planning of planning_info
+  (* | Lelt_Planning of planning_info (* NOTE: planning is always dependent on heading *) *)
   | Lelt_Comment of string
   | Lelt_Fixed_Width_Area of string
   | Lelt_Horizontal_Rule
-  | Lelt_Keyword of
-      { key : string
-      ; value : string
-      }
-  | Lelt_LaTeX_Environment of
-      { name : string
-      ; extra : string option
-      ; contents : string option
-      }
+  | Lelt_Keyword of keyword_info
+  | Lelt_LaTeX_Environment of latex_environment_info
   | Lelt_Node_Property of node_property_info
-  | Lelt_Paragraph of string
+  | Lelt_Paragraph of object_ list (* standard set *)
   | Lelt_Table_Row of table_row_info
 
 and block_info =
@@ -112,10 +106,18 @@ and clock_info =
       ; mm : int
       }
 
-and planning_info =
-  { heading : heading_info
-  ; plannings : planning_data list
+and keyword_info =
+  { key : string
+  ; value : string
   }
+
+and latex_environment_info =
+  { name : string
+  ; extra : string option
+  ; contents : string option
+  }
+
+and planning_info = { plannings : planning_data list }
 
 and planning_data =
   { keyword : [ `Deadline | `Scheduled | `Closed ]
@@ -146,9 +148,9 @@ and footnote_reference_info =
 
 and citation_info =
   { cite_style : string option (* TODO *)
-  ; global_prefix : string option
+  ; global_prefix : object_ list (* standard set *)
   ; referecnes : citation_reference_info list
-  ; global_suffix : string option
+  ; global_suffix : object_ list (* standard set *)
   }
 
 and citation_reference_info =
@@ -214,7 +216,7 @@ and statistics_cookie_info =
   }
 
 and script_info =
-  { char : char
+  { char : char option (* HACK: to make parsing easier *)
   ; script : script_data
   }
 
