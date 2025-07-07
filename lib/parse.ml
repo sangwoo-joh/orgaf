@@ -1,6 +1,11 @@
 open Angstrom
 
 module Primitive = struct
+  let is_space = function
+    | ' ' -> true
+    | _ -> false
+  ;;
+
   let is_blank = function
     | ' ' | '\t' -> true
     | _ -> false
@@ -16,8 +21,36 @@ module Primitive = struct
     | _ -> false
   ;;
 
+  let is_alpha = function
+    | 'a' .. 'z' | 'A' .. 'Z' -> true
+    | _ -> false
+  ;;
+
+  let is_alpha_numeric = function
+    | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> true
+    | _ -> false
+  ;;
+
   let is_star = function
     | '*' -> true
+    | _ -> false
+  ;;
+
+  let is_special_char = function
+    | '*'
+    | '/'
+    | '_'
+    | '+'
+    | '~'
+    | '='
+    | '['
+    | '<'
+    | '{'
+    | '\\'
+    | '@'
+    | '$'
+    | '\n'
+    | '\r' -> true
     | _ -> false
   ;;
 end
