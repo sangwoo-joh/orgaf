@@ -186,6 +186,31 @@ let parse_staistics_cookie = failwith "not implemented"
 let parse_table_cell = failwith "not implemented"
 let parse_timestamp = failwith "not implemented"
 
+let parse_minimal_object =
+  choice
+    [ parse_text_markup
+    ; parse_entity
+    ; parse_latex_fragment
+    ; parse_superscript
+    ; parse_subscript
+    ; parse_plain_text
+    ]
+;;
+
+let parse_standard_object =
+  choice
+    [ parse_text_markup
+    ; parse_link
+    ; parse_entity
+    ; parse_latex_fragment
+    ; parse_export_snippet
+    ; parse_footnote_reference
+    ; parse_citation (* ; parse_citation_reference *)
+    ; parse_superscript
+    ; parse_subscript
+    ; parse_plain_text (* should be the last *)
+    ]
+;;
 
 let parse_object =
   choice
