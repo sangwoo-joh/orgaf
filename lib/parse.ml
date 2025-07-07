@@ -196,32 +196,6 @@ let parse_timestamp = failwith "not implemented"
 let parse_text_markup = failwith "not implemented"
 let parse_link = failwith "not implemented"
 
-let parse_minimal_object =
-  choice
-    [ parse_text_markup
-    ; parse_entity
-    ; parse_latex_fragment
-    ; parse_superscript
-    ; parse_subscript
-    ; parse_plain_text
-    ]
-;;
-
-let parse_standard_object =
-  choice
-    [ parse_text_markup
-    ; parse_link
-    ; parse_entity
-    ; parse_latex_fragment
-    ; parse_export_snippet
-    ; parse_footnote_reference
-    ; parse_citation
-    ; parse_superscript
-    ; parse_subscript
-    ; parse_plain_text (* should be the last *)
-    ]
-;;
-
 let parse_object =
   choice
     [ parse_text_markup
