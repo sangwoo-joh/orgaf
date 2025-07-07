@@ -57,42 +57,15 @@ and section_info =
   }
 
 and greater_element_info =
-  | Gelt_Greater_Block of
-      { name : string
-      ; subtype : [ `Center | `Quote | `Special of string ]
-      ; parameters : string option
-      ; contents : element list
-      }
-  | Gelt_Drawer of
-      { name : string
-      ; contents : element list (* except another drawer *)
-      }
-  | Gelt_Property_Drawer of { contents : node_property_info list }
-  | Gelt_Dynamic_Block of
-      { name : string
-      ; parameters : string option
-      ; contents : element list
-      }
-  | Gelt_Footnote_Definition of
-      { label : string
-      ; contents : element list
-      }
-  | Gelt_Inlinetask of
-      { contents : heading_info
-      ; optional_elements : element list
-      (* when level >= org-inlinetask-min-level && no optional components && END *)
-      }
+  | Gelt_Greater_Block of greater_block_info
+  | Gelt_Drawer of drawer_info
+  | Gelt_Property_Drawer of property_drawer_info
+  | Gelt_Dynamic_Block of dynamic_block_info
+  | Gelt_Footnote_Definition of footnote_definition_info
+  | Gelt_Inlinetask of inlinetask_info
   | Gelt_Item of item_info
-  | Gelt_Plain_List of
-      { subtype : [ `Ordered | `Descriptive | `Unordered ]
-      ; contents : item_info list
-      ; level : int
-      }
-  | Gelt_Table of
-      { subtype : [ `Org | `Table_dot_el ]
-      ; rows : table_row_info list
-      ; formulas : string list
-      }
+  | Gelt_Plain_List of plain_list_info
+  | Gelt_Table of table_info
 
 and lesser_element_info =
   | Lelt_Block of block_info
@@ -255,6 +228,49 @@ and table_cell_info =
   { contents : object_ list
   ; spaces : string option
   ; eol : string
+  }
+
+and greater_block_info =
+  { name : string
+  ; subtype : [ `Center | `Quote | `Special of string ]
+  ; parameters : string option
+  ; contents : element list
+  }
+
+and drawer_info =
+  { name : string
+  ; contents : element list (* except another drawer *)
+  }
+
+and property_drawer_info = { contents : node_property_info list }
+
+and dynamic_block_info =
+  { name : string
+  ; parameters : string option
+  ; contents : element list
+  }
+
+and footnote_definition_info =
+  { label : string
+  ; contents : element list
+  }
+
+and inlinetask_info =
+  { contents : heading_info
+  ; optional_elements : element list
+    (* when level >= org-inlinetask-min-level && no optional components && END *)
+  }
+
+and plain_list_info =
+  { subtype : [ `Ordered | `Descriptive | `Unordered ]
+  ; contents : item_info list
+  ; level : int
+  }
+
+and table_info =
+  { subtype : [ `Org | `Table_dot_el ]
+  ; rows : table_row_info list
+  ; formulas : string list
   }
 
 type t = element list
