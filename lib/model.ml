@@ -323,4 +323,4 @@ and table_info =
   ; formulas : string list
   }
 
-type t = element list
+type document = element list
