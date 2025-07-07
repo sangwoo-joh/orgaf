@@ -169,22 +169,22 @@ and inline_source_block_info =
   }
 
 and link_info =
-  | Radio of
+  | Radio_Link of
       { pre : char
       ; radio : object_ (* radio target or minimal set *)
       ; post : char
       }
-  | Plain of
+  | Plain_Link of
       { pre : char
       ; linktype : string
       ; pathplain : string
       ; post : char
       }
-  | Angle of
+  | Angle_Link of
       { linktype : string
       ; pathangle : string
       }
-  | Regular of
+  | Regular_Link of
       { pathreg : annotated_pattern
       ; description : object_ list
       }
