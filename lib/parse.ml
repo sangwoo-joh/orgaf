@@ -294,6 +294,27 @@ let parse_link_custom_id =
   char '#' *> take_while (fun c -> c <> ']') >>| fun id -> M.Custom_Id id
 ;;
 
+let parse_link_code_ref =
+  lparen *> take_till (fun c -> c = ')')
+  <* rparen
+  >>| fun code -> M.Code_Ref code
+;;
+
+let parse_link_fuzzy_or_file =
+  take_while1 (fun c -> c <> ']')
+  >>| fun fuzzy_or_file -> M.Fuzzy_Or_File fuzzy_or_file
+;;
+
+let parse_annotated_pattern =
+  choice
+    [ parse_link_parameter
+    ; parse_link_id
+    ; parse_link_custom_id
+    ; parse_link_code_ref
+    ; parse_link_fuzzy_or_file
+    ]
+;;
+
 let parse_link = failwith "not implemented"
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
