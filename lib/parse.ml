@@ -128,9 +128,6 @@ let parse_plain_text =
   >>| fun text -> M.Obj_Plain_text text
 ;;
 
-let parse_text_markup = failwith "not implemented"
-let parse_link = failwith "not implemented"
-
 let parse_braced_entity =
   take_while1 P.is_alpha
   >>= fun name ->
@@ -185,6 +182,8 @@ let parse_radio_target = failwith "not implemented"
 let parse_staistics_cookie = failwith "not implemented"
 let parse_table_cell = failwith "not implemented"
 let parse_timestamp = failwith "not implemented"
+let parse_text_markup = failwith "not implemented"
+let parse_link = failwith "not implemented"
 
 let parse_minimal_object =
   choice
