@@ -16,6 +16,8 @@ module Primitive = struct
     | _ -> false
   ;;
 
+  let is_whitespace c = is_blank c || is_newline c
+
   let is_digit = function
     | '0' .. '9' -> true
     | _ -> false
@@ -51,6 +53,46 @@ module Primitive = struct
     | '$'
     | '\n'
     | '\r' -> true
+    | _ -> false
+  ;;
+
+  let is_path_char = function
+    | ' ' | '\t' | '\n' | '\r' | '(' | ')' | '[' | ']' | '<' | '>' -> false
+    | _ -> true
+  ;;
+
+  let is_punct_char = function
+    (* https://support.google.com/a/answer/1371415?hl=en *)
+    | '!'
+    | '"'
+    | '#'
+    | '$'
+    | '%'
+    | '&'
+    | '\''
+    | '('
+    | ')'
+    | '*'
+    | '+'
+    | ','
+    | '\\'
+    | '-'
+    | '/'
+    | ':'
+    | ';'
+    | '<'
+    | '='
+    | '>'
+    | '?'
+    | '@'
+    | '['
+    | ']'
+    | '^'
+    | '_'
+    | '`'
+    | '{'
+    | '|'
+    | '}' -> true
     | _ -> false
   ;;
 end
