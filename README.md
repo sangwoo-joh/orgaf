@@ -5,6 +5,10 @@ Org-mode parser written leveraging Angstrom and Faraday.
 Based on [org-mode syntax v2](https://orgmode.org/worg/org-syntax.html)
 
 # Status
+ * :green_circle: : fully supported.
+ * :heavy_exclamation_mark: : partially supported or implemented in a different way due to certain limitations.
+ * :x: : not supported.
+ * :construction: : work in progress.
 
 ## Elements
 Not yet implemented.
