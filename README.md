@@ -1,5 +1,82 @@
 # orgaf
 
-Org-mode parser written in OCaml leveraging Angstrom and Faraday.
+Org-mode parser written leveraging Angstrom and Faraday.
 
 Based on [org-mode syntax v2](https://orgmode.org/worg/org-syntax.html)
+
+# Status
+
+## Elements
+Not yet implemented.
+
+| Component             | Status |
+|-----------------------|--------|
+| Headings and Sections |        |
+| Greater Elements      |        |
+| Lesser Elements       |        |
+
+
+### Headings and Sections
+
+| Component          | Status |
+|--------------------|--------|
+| Headings           |        |
+| Sections           |        |
+| The Zeroth Section |        |
+
+### Greater Elements
+
+| Component            | Status |
+|----------------------|--------|
+| Greater Blocks       |        |
+| Drawers              |        |
+| Property Drawers     |        |
+| Dynamic Blocks       |        |
+| Footnote Definitions |        |
+| Inlinetasks          |        |
+| Items                |        |
+| Plain Lists          |        |
+| Tables               |        |
+
+### Lesser Elements
+
+| Component          | Status |
+|--------------------|--------|
+| Blocks             |        |
+| Clock              |        |
+| Diary Sexp         |        |
+| Planning           |        |
+| Comments           |        |
+| Fixed Width Areas  |        |
+| Horizontal Rules   |        |
+| Keywords           |        |
+| LaTeX Environments |        |
+| Node Properties    |        |
+| Paragraphs         |        |
+| Table Rows         |        |
+
+
+## Objects
+Work in progress :construction:
+
+| Component            | Status |
+|----------------------|--------|
+| Entities             |        |
+| LaTeX Fragments      |        |
+| Export Snippets      |        |
+| Footnote References  |        |
+| Citations            |        |
+| Citation References  |        |
+| Inline Babel Calls   |        |
+| Inline Source Blocks |        |
+| Line Breaks          |        |
+| Links                |        |
+| Macros               |        |
+| Targets              |        |
+| Radio Targets        |        |
+| Statistics Cookies   |        |
+| Subscript            |        |
+| Superscript          |        |
+| Table Cells          |        |
+| Timestamps           |        |
+| Text Markup          |        |
