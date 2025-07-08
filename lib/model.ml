@@ -169,16 +169,10 @@ and inline_source_block_info =
   }
 
 and link_info =
-  | Radio_Link of
-      { pre : char
-      ; radio : object_ (* radio target or minimal set *)
-      ; post : char
-      }
+  | Radio_Link of { radio : object_ (* radio target or minimal set *) }
   | Plain_Link of
-      { pre : char
-      ; linktype : string
+      { linktype : string
       ; pathplain : string
-      ; post : char
       }
   | Angle_Link of
       { linktype : string
