@@ -13,7 +13,11 @@ let is_newline = function
   | _ -> false
 ;;
 
-let is_whitespace c = is_blank c || is_newline c
+let is_whitespace c =
+  (* Although the org syntax defines this as "blank lines" in section 2.2., it
+     uses "whitespaces" in other places. So we adapt it as function name. *)
+  is_blank c || is_newline c
+;;
 
 let is_numeric = function
   | '0' .. '9' -> true
