@@ -347,6 +347,15 @@ let parse_regular_link (self_parse_object : M.object_ t) =
   choice [ with_desc; without_desc ]
 ;;
 
+let parse_angle_link =
+  langle
+  *> lift2
+       (fun linktype pathangle -> M.Angle_Link { linktype; pathangle })
+       parse_link_parameters
+       (colon *> take_while (fun c -> c <> '>'))
+  <* rangle
+;;
+
 let parse_link = failwith "not implemented"
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
