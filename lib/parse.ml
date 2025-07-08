@@ -18,7 +18,7 @@ module Primitive = struct
 
   let is_whitespace c = is_blank c || is_newline c
 
-  let is_digit = function
+  let is_numeric = function
     | '0' .. '9' -> true
     | _ -> false
   ;;
@@ -103,8 +103,8 @@ module A = Appendix
 
 let unit = return ()
 
-let digit =
-  satisfy P.is_digit
+let number =
+  satisfy P.is_numeric
   >>| function
   | '0' -> 0
   | '1' -> 1
