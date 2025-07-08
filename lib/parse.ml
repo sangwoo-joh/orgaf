@@ -279,13 +279,25 @@ let parse_text_markup (self_parse_object : M.object_ t) =
     ]
 ;;
 
-let parse_link_parameter =
+let parse_link_parameters =
+  choice
+    [ string "shell"
+    ; string "news"
+    ; string "mailto"
+    ; string "https"
+    ; string "http"
+    ; string "ftp"
+    ; string "help"
+    ; string "file"
+    ; string "elisp"
+    ]
+;;
+
+let parse_link_hyper_text =
   lift2
     (fun linktype pathinner -> M.Hypertext { linktype; pathinner })
-    (take_while1 (function
-      | ':' | '/' | ']' -> false
-      | _ -> true))
-    ((string "://" <|> string ":") *> take_while (fun c -> c <> ']'))
+    parse_link_parameters
+    ((string ":" <|> string "://") *> take_while (fun c -> c <> ']'))
 ;;
 
 let parse_link_id =
@@ -309,7 +321,7 @@ let parse_link_fuzzy_or_file =
 
 let parse_annotated_pattern =
   choice
-    [ parse_link_parameter
+    [ parse_link_hyper_text
     ; parse_link_id
     ; parse_link_custom_id
     ; parse_link_code_ref

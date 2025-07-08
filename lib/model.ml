@@ -192,7 +192,6 @@ and link_info =
 and annotated_pattern =
   | Hypertext of
       { linktype : string
-        (* shell, news, mailto, https, http, ftp, help, file, elisp *)
       ; pathinner : string
       }
   | Id of string
