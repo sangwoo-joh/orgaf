@@ -398,7 +398,54 @@ let parse_angle_link =
   <* rangle
 ;;
 
-let parse_link = failwith "not implemented"
+let parse_path_plain =
+  (* This overall pattern may be matched with the following regexp:
+     (?:[^ \t\n\[\]<>()]|\((?:[^ \t\n\[\]<>()]|\([^ \t\n\[\]<>()]*\))*\))+(?:[^[:punct:] \t\n]|\/|\((?:[^ \t\n\[\]<>()]|\([^ \t\n\[\]<>()]*\))*\)) *)
+  let is_valid_end_char c = not (P.is_whitespace c || P.is_punct_char c) in
+  let rec parse_path_atom ~depth =
+    (* normal characters *)
+    let normals = take_while1 P.is_path_char in
+    (* group in parenthesis, this takes up to depth 2 *)
+    let paren_group =
+      if depth <= 0
+      then fail "Max paren depth reached."
+      else
+        lparen *> many (parse_path_atom ~depth:(depth - 1))
+        <* rparen
+        >>| fun inner -> Printf.sprintf "(%s)" (String.concat "" inner)
+    in
+    choice [ normals; paren_group ]
+  in
+  many1 (parse_path_atom ~depth:2)
+  >>| String.concat ""
+  >>= fun path_str ->
+  (* We need to check whether path string ends with either a non-punctuation
+     non-whitespace character, a forward slash, or a parenthesis-wrapped
+     substring. The last condition has been checked by parse_path_atom.*)
+  let last_char = String.get path_str (String.length path_str - 1) in
+  if is_valid_end_char last_char || last_char = '/'
+  then return path_str
+  else fail "Pathplain does not end with a valid character."
+;;
+
+let parse_plain_link =
+  (* FIXME: for simplicity, here we just re-used markup pre/post conditions, but
+     this needs to be resolved. *)
+  markup_pre_condition
+  *> lift2
+       (fun linktype pathplain -> M.Plain_Link { linktype; pathplain })
+       parse_link_parameters
+       parse_path_plain
+  <* markup_post_condition
+;;
+
+let parse_link (self_parse_object : M.object_ t) =
+  (* TODO: parse_radio_link *)
+  choice
+    [ parse_regular_link self_parse_object; parse_angle_link; parse_plain_link ]
+  >>| fun link_info -> M.Obj_Link link_info
+;;
+
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
 let parse_footnote_reference = failwith "not implemented"
@@ -420,7 +467,7 @@ let parse_object =
   fix (fun self_parse_object ->
     choice
       [ parse_text_markup self_parse_object
-      ; parse_link
+      ; parse_link self_parse_object
       ; parse_entity
       ; parse_latex_fragment
       ; parse_export_snippet
