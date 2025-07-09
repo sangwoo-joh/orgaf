@@ -1,4 +1,5 @@
 (** NOTE: please follow the https://orgmode.org/worg/org-syntax.html#Entities_List *)
+(** TODO: optimise membership check *)
 
 let valid_entities =
   [ (* LATIN *)
