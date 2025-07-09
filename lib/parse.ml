@@ -348,6 +348,29 @@ let parse_link (self_parse_object : M.object_ t) =
   >>| fun link_info -> M.Obj_Link link_info
 ;;
 
+let parse_macro =
+  let parse_macro_name =
+    take_while1 (fun c -> P.is_alpha_numeric c || c = '-' || c = '_')
+  in
+  let parse_macro_args =
+    lparen *> take_till (fun c -> c = ')') <* rparen >>| fun args -> Some args
+  in
+  let with_args =
+    string "{{{"
+    *> lift2
+         (fun name arguments -> M.Obj_Macro { name; arguments })
+         parse_macro_name
+         parse_macro_args
+    <* string "}}}"
+  in
+  let without_args =
+    string "{{{" *> parse_macro_name
+    <* string "}}}"
+    >>| fun name -> M.Obj_Macro { name; arguments = None }
+  in
+  choice [ with_args; without_args ]
+;;
+
 let parse_latex_fragment = failwith "not implemented"
 let parse_export_snippet = failwith "not implemented"
 let parse_footnote_reference = failwith "not implemented"
@@ -358,7 +381,6 @@ let parse_citation_reference = failwith "not implemented"
 let parse_babel_calls = failwith "not implemented"
 let parse_source_block = failwith "not implemented"
 let parse_line_break = failwith "not implemented"
-let parse_macro = failwith "not implemented"
 let parse_target = failwith "not implemented"
 let parse_radio_target = failwith "not implemented"
 let parse_staistics_cookie = failwith "not implemented"
