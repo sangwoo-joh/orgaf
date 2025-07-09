@@ -84,9 +84,9 @@ let parse_braced_entity =
 
 let parse_whitespace_entity =
   underscore *> take_while1 P.is_space
-  >>= fun spaces ->
+  >>| fun spaces ->
   let name = "_" ^ spaces in
-  return (M.Obj_Entity { name })
+  M.Obj_Entity { name }
 ;;
 
 let parse_post_entity =
