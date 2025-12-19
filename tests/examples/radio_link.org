@@ -1,0 +1,2 @@
+* Test Radio Link
+This is a test for radio links: >>>radio target<<< should be parsed correctly.
