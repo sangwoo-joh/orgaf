@@ -371,21 +371,21 @@ let parse_macro =
   choice [ with_args; without_args ]
 ;;
 
-let parse_latex_fragment = failwith "not implemented"
-let parse_export_snippet = failwith "not implemented"
-let parse_footnote_reference = failwith "not implemented"
-let parse_citation = failwith "not implemented"
-let parse_subscript = failwith "not implemented"
-let parse_superscript = failwith "not implemented"
-let parse_citation_reference = failwith "not implemented"
-let parse_babel_calls = failwith "not implemented"
-let parse_source_block = failwith "not implemented"
-let parse_line_break = failwith "not implemented"
-let parse_target = failwith "not implemented"
-let parse_radio_target = failwith "not implemented"
-let parse_staistics_cookie = failwith "not implemented"
-let parse_table_cell = failwith "not implemented"
-let parse_timestamp = failwith "not implemented"
+(* let parse_latex_fragment = failwith "not implemented" *)
+(* let parse_export_snippet = failwith "not implemented" *)
+(* let parse_footnote_reference = failwith "not implemented" *)
+(* let parse_citation = failwith "not implemented" *)
+(* let parse_subscript = failwith "not implemented" *)
+(* let parse_superscript = failwith "not implemented" *)
+(* let parse_citation_reference = failwith "not implemented" *)
+(* let parse_babel_calls = failwith "not implemented" *)
+(* let parse_source_block = failwith "not implemented" *)
+(* let parse_line_break = failwith "not implemented" *)
+(* let parse_target = failwith "not implemented" *)
+(* let parse_radio_target = failwith "not implemented" *)
+(* let parse_staistics_cookie = failwith "not implemented" *)
+(* let parse_table_cell = failwith "not implemented" *)
+(* let parse_timestamp = failwith "not implemented" *)
 
 let parse_object =
   fix (fun self_parse_object ->
@@ -393,13 +393,13 @@ let parse_object =
       [ parse_text_markup self_parse_object
       ; parse_link self_parse_object
       ; parse_entity
-      ; parse_latex_fragment
-      ; parse_export_snippet
-      ; parse_footnote_reference
-      ; parse_citation
-      ; parse_citation_reference
-      ; parse_superscript
-      ; parse_subscript
+      (* ; parse_latex_fragment *)
+      (* ; parse_export_snippet *)
+      (* ; parse_footnote_reference *)
+      (* ; parse_citation *)
+      (* ; parse_citation_reference *)
+      (* ; parse_superscript *)
+      (* ; parse_subscript *)
       ; parse_plain_text (* should be the last *)
       ])
 ;;

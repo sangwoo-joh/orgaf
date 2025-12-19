@@ -1,11 +1,5 @@
 open Orgaf.Parse
 
-let parse_string p s =
-  match Angstrom.parse_string ~consume:All p s with
-  | Ok (result, _) -> [ result ]
-  | Error _ -> []
-;;
-
 let test_plain_text () =
   let input = "just text" in
   let result = Angstrom.parse_string ~consume:All parse_plain_text input in
@@ -19,5 +13,5 @@ let () =
   let open Alcotest in
   run
     "Orgaf Tests"
-    [ "Basic", [ test_case "Plain text parsing" `Quick test_plain_text ] ]
+    [ "Skip", [ test_case "Plain text parsing" `Quick test_plain_text ] ]
 ;;
