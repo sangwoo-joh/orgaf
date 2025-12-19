@@ -1,0 +1,19 @@
+* Heading title is a part of the headline element itself <BEGIN>
+
+
+Text inside heading is considered a part of its CONTENTS and can
+contain other elements recursively.  This paragraph only has CONTENTS,
+no BEGIN, no END, and a BLANK line.
+
+:drawer:
+The same works at the deeper levels, with this drawer having
+=:drawer:= line as BEGIN, this paragraph belonging to drawer CONTENTS,
+=:end:= representing END, and no BLANK after.
+:end:
+#+begin_comment
+A comment is taken verbatim, with this text not parsed recursively and
+considered a part of the comment block element itself.
+=#+begin_commend= is BEGIN, =#+end_comment= - END, and VALUE is this
+text.
+#+end_comment
+This is the end of the heading, no END exists for headings.
