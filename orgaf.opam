@@ -9,7 +9,7 @@ build: [
 ]
 
 depends: [
-  "ocaml" {>= "4.13"}
+  "ocaml" {>= "5.3"}
   "dune" {>= "2.9.0"}
   "angstrom" {>= "0.14.0"}
   "faraday" {>= "0.6.1"}
