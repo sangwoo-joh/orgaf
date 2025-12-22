@@ -128,7 +128,28 @@ Some text.
  * not able to contain planning.
 
 ## Greater Elements
+ * Can directly contain any greater or lesser element, **except**:
+   * Elements of their own type
+   * Planning (may only in a heading)
+   * Property drawers (may only in a heading or zeroth section)
+   * Node properties (only in property drawers)
+   * Items (may only in plain lists)
+   * Table rows (may only in tables)
 ### Greater Blocks
+```org
+#+begin_NAME PARAMETERS
+CONTENTS
+#+end_NAME
+```
+
+ * NAME: A string with any non-whitespace characters and not the NAME of a lesser block. Treated differently based on their subtype
+   * center: Center Block
+   * quote: Quote Block
+   * any other value: Special Block
+ * PARAMETERS (optional): A string with any characters other than a newline
+ * CONTENTS: A collection of zero or more elements. No line start with `#+end_NAME`
+
+
 ### Dynamic Blocks
 ### Drawers
 ### Property Drawers
