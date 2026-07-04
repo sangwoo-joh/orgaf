@@ -112,22 +112,17 @@ let parse_entity =
   *> choice [ parse_braced_entity; parse_whitespace_entity; parse_post_entity ]
 ;;
 
-let markup_pre_condition =
-  (* FIXME: Current implementation has limitation. org-syntax defines PRE as a
-     character *before* the MARKER, but the current implementation checks the
-     character *after* the MARKER, i.e., the first character of CONTENTS. For
-     example, in hello*world*, character 'o' precedes '*', thus it is not PRE,
-     but the current implementation sees 'w' after '*' and wrongly says it meets
-     the condition. *)
-  at_end_of_input
-  >>= function
-  | true -> unit
-  | false ->
-    peek_char_fail
-    >>= (function
-     | ' ' | '\t' | '\n' | '\r' | '-' | '(' | '{' | '\'' | '"' -> unit
-     | _ -> fail "invalid PRE condition of Markup")
+(* org-syntax defines PRE as the character *before* the MARKER. Angstrom cannot
+   look back, so the top-level driver ([parse_inline]) supplies the previous
+   character explicitly and gates emphasis with [pre_guard]. [None] means
+   start-of-fragment, which is a valid PRE (like start-of-line). *)
+let is_pre_ok = function
+  | None -> true
+  | Some (' ' | '\t' | '\n' | '\r' | '-' | '(' | '{' | '\'' | '"') -> true
+  | Some _ -> false
 ;;
+
+let pre_guard prev = if is_pre_ok prev then unit else fail "invalid PRE condition"
 
 let markup_post_condition =
   at_end_of_input
@@ -170,9 +165,9 @@ let parse_markup_standard_contents (self_parse_object : M.object_ t) =
   many1 self_parse_object >>= fun objects -> return (`Standard objects)
 ;;
 
-let parse_text_markup (self_parse_object : M.object_ t) =
+let parse_text_markup ~prev (self_parse_object : M.object_ t) =
   let aux_markup_parser ~marker ~markertype parser =
-    markup_pre_condition *> char marker *> parser
+    pre_guard prev *> char marker *> parser
     <* char marker
     <* markup_post_condition
     >>| fun contents -> M.Obj_Text_Markup { markertype; contents }
@@ -274,7 +269,16 @@ let parse_annotated_pattern =
 ;;
 
 let parse_regular_link (self_parse_object : M.object_ t) =
-  let parse_desc = string "][" *> many self_parse_object in
+  let parse_desc =
+    (* extract the description text up to "]]" first, then parse its objects —
+       otherwise plain text greedily consumes the closing "]]" (']' is not a
+       special char). *)
+    string "][" *> take_till_string_non_greedy "]]"
+    >>| fun raw ->
+    match parse_string ~consume:All (many self_parse_object) raw with
+    | Ok objs -> objs
+    | Error _ -> [ M.Obj_Plain_text raw ]
+  in
   let with_desc =
     string "[["
     *> lift2
@@ -330,10 +334,8 @@ let parse_path_plain =
   else fail "Pathplain does not end with a valid character."
 ;;
 
-let parse_plain_link =
-  (* FIXME: for simplicity, here we just re-used markup pre/post conditions, but
-     this needs to be resolved. *)
-  markup_pre_condition
+let parse_plain_link ~prev =
+  pre_guard prev
   *> lift2
        (fun linktype pathplain -> M.Plain_Link { linktype; pathplain })
        parse_link_parameters
@@ -341,10 +343,13 @@ let parse_plain_link =
   <* markup_post_condition
 ;;
 
-let parse_link (self_parse_object : M.object_ t) =
+let parse_link ~prev (self_parse_object : M.object_ t) =
   (* TODO: parse_radio_link *)
   choice
-    [ parse_regular_link self_parse_object; parse_angle_link; parse_plain_link ]
+    [ parse_regular_link self_parse_object
+    ; parse_angle_link
+    ; parse_plain_link ~prev
+    ]
   >>| fun link_info -> M.Obj_Link link_info
 ;;
 
@@ -387,12 +392,16 @@ let parse_macro =
 (* let parse_table_cell = failwith "not implemented" *)
 (* let parse_timestamp = failwith "not implemented" *)
 
+(* Permissive recursive object parser, used for CONTENTS nested inside markup and
+   link descriptions. PRE is treated as always-valid here (contents start is a
+   boundary); the top-level driver enforces the real PRE via [make_object]. *)
 let parse_object =
   fix (fun self_parse_object ->
     choice
-      [ parse_text_markup self_parse_object
-      ; parse_link self_parse_object
+      [ parse_text_markup ~prev:None self_parse_object
+      ; parse_link ~prev:None self_parse_object
       ; parse_entity
+      ; parse_macro
       (* ; parse_latex_fragment *)
       (* ; parse_export_snippet *)
       (* ; parse_footnote_reference *)
@@ -402,4 +411,51 @@ let parse_object =
       (* ; parse_subscript *)
       ; parse_plain_text (* should be the last *)
       ])
+;;
+
+(* One object at the top level, with the real previous character supplied so
+   emphasis PRE is enforced correctly. *)
+let make_object ~prev =
+  choice
+    [ parse_text_markup ~prev parse_object
+    ; parse_link ~prev parse_object
+    ; parse_entity
+    ; parse_macro
+    ; parse_plain_text
+    ]
+;;
+
+let coalesce objs =
+  (* merge adjacent plain-text objects produced by the single-char fallback *)
+  let rec go acc = function
+    | [] -> List.rev acc
+    | M.Obj_Plain_text a :: M.Obj_Plain_text b :: tl ->
+      go acc (M.Obj_Plain_text (a ^ b) :: tl)
+    | x :: tl -> go (x :: acc) tl
+  in
+  go [] objs
+;;
+
+(** Pass 2 entry point: parse the objects of a single inline-bearing fragment.
+    Total by construction — an unparseable character becomes plain text — so a
+    malformed fragment never crashes the document parse. *)
+let parse_inline (s : string) : M.object_ list =
+  let n = String.length s in
+  let rec loop i acc =
+    if i >= n
+    then coalesce (List.rev acc)
+    else begin
+      let prev = if i = 0 then None else Some s.[i - 1] in
+      let sub = String.sub s i (n - i) in
+      match
+        Angstrom.parse_string
+          ~consume:Prefix
+          (both (make_object ~prev) pos)
+          sub
+      with
+      | Ok (obj, len) when len > 0 -> loop (i + len) (obj :: acc)
+      | _ -> loop (i + 1) (M.Obj_Plain_text (String.make 1 s.[i]) :: acc)
+    end
+  in
+  loop 0 []
 ;;
