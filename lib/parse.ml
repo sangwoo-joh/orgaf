@@ -122,7 +122,9 @@ let is_pre_ok = function
   | Some _ -> false
 ;;
 
-let pre_guard prev = if is_pre_ok prev then unit else fail "invalid PRE condition"
+let pre_guard prev =
+  if is_pre_ok prev then unit else fail "invalid PRE condition"
+;;
 
 let markup_post_condition =
   at_end_of_input
@@ -155,8 +157,9 @@ let parse_markup_string_contents ~marker =
   (* when marker is code or verbatim *)
   take_till (fun c -> c = marker)
   >>= fun content ->
-  if String.starts_with ~prefix:" " content
-     || String.ends_with ~suffix:" " content
+  if
+    String.starts_with ~prefix:" " content
+    || String.ends_with ~suffix:" " content
   then fail "Verbatim/Code contents cannot start or end with whitespace"
   else return (`String content)
 ;;
@@ -402,13 +405,13 @@ let parse_object =
       ; parse_link ~prev:None self_parse_object
       ; parse_entity
       ; parse_macro
-      (* ; parse_latex_fragment *)
-      (* ; parse_export_snippet *)
-      (* ; parse_footnote_reference *)
-      (* ; parse_citation *)
-      (* ; parse_citation_reference *)
-      (* ; parse_superscript *)
-      (* ; parse_subscript *)
+        (* ; parse_latex_fragment *)
+        (* ; parse_export_snippet *)
+        (* ; parse_footnote_reference *)
+        (* ; parse_citation *)
+        (* ; parse_citation_reference *)
+        (* ; parse_superscript *)
+        (* ; parse_subscript *)
       ; parse_plain_text (* should be the last *)
       ])
 ;;
@@ -444,18 +447,14 @@ let parse_inline (s : string) : M.object_ list =
   let rec loop i acc =
     if i >= n
     then coalesce (List.rev acc)
-    else begin
+    else (
       let prev = if i = 0 then None else Some s.[i - 1] in
       let sub = String.sub s i (n - i) in
       match
-        Angstrom.parse_string
-          ~consume:Prefix
-          (both (make_object ~prev) pos)
-          sub
+        Angstrom.parse_string ~consume:Prefix (both (make_object ~prev) pos) sub
       with
       | Ok (obj, len) when len > 0 -> loop (i + len) (obj :: acc)
-      | _ -> loop (i + 1) (M.Obj_Plain_text (String.make 1 s.[i]) :: acc)
-    end
+      | _ -> loop (i + 1) (M.Obj_Plain_text (String.make 1 s.[i]) :: acc))
   in
   loop 0 []
 ;;
