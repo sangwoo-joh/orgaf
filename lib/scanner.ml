@@ -483,6 +483,56 @@ let parse_planning content =
 ;;
 
 (* ------------------------------------------------------------------ *)
+(* clock                                                              *)
+(* ------------------------------------------------------------------ *)
+
+let is_clock content =
+  starts_with ~prefix:"clock:" (String.lowercase_ascii content)
+;;
+
+let find_sub s sub =
+  let ls = String.length s
+  and lsub = String.length sub in
+  let rec go i =
+    if i + lsub > ls
+    then None
+    else if String.sub s i lsub = sub
+    then Some i
+    else go (i + 1)
+  in
+  go 0
+;;
+
+let parse_clock content : M.clock_info option =
+  let rest = lstrip (String.sub content 6 (String.length content - 6)) in
+  let duration () =
+    match find_sub rest "=>" with
+    | Some i ->
+      let d = lstrip (String.sub rest (i + 2) (String.length rest - i - 2)) in
+      (match String.split_on_char ':' d with
+       | h :: m :: _ ->
+         (try
+            let mm = List.hd (String.split_on_char ' ' (String.trim m)) in
+            Some
+              (M.Duration
+                 { hh = int_of_string (String.trim h); mm = int_of_string mm })
+          with
+          | _ -> None)
+       | _ -> None)
+    | None -> None
+  in
+  if String.length rest > 0 && (rest.[0] = '[' || rest.[0] = '<')
+  then (
+    match read_timestamp_str rest 0 with
+    | Some (ts, _) ->
+      (match Parse.timestamp_of_string ts with
+       | Some t -> Some (M.Timestamp t)
+       | None -> duration ())
+    | None -> duration ())
+  else duration ()
+;;
+
+(* ------------------------------------------------------------------ *)
 (* elements needing raw bodies                                        *)
 (* ------------------------------------------------------------------ *)
 
@@ -572,6 +622,11 @@ and dispatch (line : L.t) rest =
                     then (
                       match parse_planning content with
                       | Some p -> [ FPlanning p ], rest
+                      | None -> handle_paragraph (line :: rest))
+                    else if is_clock content
+                    then (
+                      match parse_clock content with
+                      | Some c -> [ FElement (lesser (M.Lelt_Clock c)) ], rest
                       | None -> handle_paragraph (line :: rest))
                     else if is_hrule content
                     then [ FElement (lesser M.Lelt_Horizontal_Rule) ], rest
@@ -893,6 +948,7 @@ and is_paragraph_breaker (l : L.t) =
   || is_comment c
   || parse_drawer_begin c <> None
   || is_fixed_width c
+  || is_clock c
   || is_hrule c
   || is_table c
   || is_item c

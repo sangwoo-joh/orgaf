@@ -598,6 +598,69 @@ let timestamp_of_string s =
   | _ -> None
 ;;
 
+(* ------------------------------------------------------------------ *)
+(* statistics cookies, targets, sub/superscript                       *)
+(* ------------------------------------------------------------------ *)
+
+let digits = take_while (fun c -> c >= '0' && c <= '9')
+let int_opt s = if s = "" then None else Some (int_of_string s)
+
+(* [N/M], [/], [N%], [%] *)
+let parse_statistics_cookie =
+  char '[' *> digits
+  >>= fun d1 ->
+  choice
+    [ char '%'
+      *> char ']'
+      *> return
+           (M.Obj_Statistics_Cookie
+              { percent = int_opt d1; num1 = None; num2 = None })
+    ; (char '/' *> digits
+       <* char ']'
+       >>| fun d2 ->
+       M.Obj_Statistics_Cookie
+         { percent = None; num1 = int_opt d1; num2 = int_opt d2 })
+    ]
+;;
+
+(* <<target>> — [<<<] (radio) is left to a future resolution pass. A third [<]
+   either side makes this fail (via [take_while1] on the leading side and the
+   [prev] guard on the trailing side) so radio targets fall through to plain text. *)
+let parse_target ~prev =
+  match prev with
+  | Some '<' -> fail "not a target (radio)"
+  | _ ->
+    string "<<" *> take_while1 (fun c -> c <> '<' && c <> '>' && c <> '\n')
+    <* string ">>"
+    >>| fun target -> M.Obj_Target { target }
+;;
+
+(* base_{...} / base^{...} / base_* — braces or asterisk only (bare [x^2] is
+   deliberately unsupported, matching org-use-sub-superscripts = {}, so that
+   [snake_case] identifiers don't become subscripts). Needs a non-blank base
+   character, supplied as [prev] by the driver. *)
+let parse_sub_super ~prev (self_parse_object : M.object_ t) =
+  match prev with
+  | Some base when not (P.is_whitespace base) ->
+    satisfy (fun c -> c = '_' || c = '^')
+    >>= fun marker ->
+    let braced =
+      char '{' *> take_till_string_non_greedy "}"
+      <* char '}'
+      >>| fun raw ->
+      M.Structured
+        (match parse_string ~consume:All (many self_parse_object) raw with
+         | Ok o -> o
+         | Error _ -> [ M.Obj_Plain_text raw ])
+    in
+    let asterisk = char '*' *> return M.Asterisk in
+    choice [ braced; asterisk ]
+    >>| fun script ->
+    let info = { M.char = Some base; script } in
+    if marker = '_' then M.Obj_Subscript info else M.Obj_Superscript info
+  | _ -> fail "sub/superscript needs a base character"
+;;
+
 (* Permissive recursive object parser, used for CONTENTS nested inside markup and
    link descriptions. PRE is treated as always-valid here (contents start is a
    boundary); the top-level driver enforces the real PRE via [make_object]. *)
@@ -606,6 +669,8 @@ let parse_object =
     choice
       [ parse_text_markup ~prev:None self_parse_object
       ; parse_footnote_reference self_parse_object
+      ; parse_statistics_cookie
+      ; parse_target ~prev:None
       ; parse_link ~prev:None self_parse_object
       ; parse_timestamp_obj
       ; parse_line_break
@@ -616,8 +681,6 @@ let parse_object =
       ; parse_macro
         (* ; parse_citation *)
         (* ; parse_citation_reference *)
-        (* ; parse_superscript *)
-        (* ; parse_subscript *)
       ; parse_plain_text (* should be the last *)
       ])
 ;;
@@ -630,7 +693,10 @@ let parse_object =
 let make_object ~prev =
   choice
     [ parse_text_markup ~prev parse_object
+    ; parse_sub_super ~prev parse_object
     ; parse_footnote_reference parse_object
+    ; parse_statistics_cookie
+    ; parse_target ~prev
     ; parse_link ~prev parse_object
     ; parse_timestamp_obj
     ; parse_line_break

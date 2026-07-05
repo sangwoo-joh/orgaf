@@ -138,6 +138,49 @@ let test_inline_timestamp () =
   | _ -> fail "expected an active timestamp"
 ;;
 
+let test_statistics_cookie () =
+  match Parse.parse_inline "done [2/5]" with
+  | [ Obj_Plain_text "done "
+    ; Obj_Statistics_Cookie { percent = None; num1 = Some 2; num2 = Some 5 }
+    ] -> ()
+  | _ -> fail "expected a [2/5] statistics cookie"
+;;
+
+let test_percent_cookie () =
+  match Parse.parse_inline "[50%]" with
+  | [ Obj_Statistics_Cookie { percent = Some 50; _ } ] -> ()
+  | _ -> fail "expected a [50%] statistics cookie"
+;;
+
+let test_target () =
+  match Parse.parse_inline "see <<anchor>>" with
+  | [ Obj_Plain_text "see "; Obj_Target { target = "anchor" } ] -> ()
+  | _ -> fail "expected a target"
+;;
+
+let test_radio_stays_plain () =
+  (* radio targets are left to a future resolution pass -> plain text *)
+  match Parse.parse_inline "<<<radio>>>" with
+  | [ Obj_Plain_text "<<<radio>>>" ] -> ()
+  | _ -> fail "radio target must remain plain text"
+;;
+
+let test_subscript () =
+  match Parse.parse_inline "H_{2}O" with
+  | [ Obj_Plain_text "H"
+    ; Obj_Subscript { script = Structured [ Obj_Plain_text "2" ]; _ }
+    ; Obj_Plain_text "O"
+    ] -> ()
+  | _ -> fail "expected a subscript"
+;;
+
+let test_no_bare_subscript () =
+  (* bare form is deliberately unsupported so snake_case is untouched *)
+  match Parse.parse_inline "snake_case" with
+  | [ Obj_Plain_text "snake_case" ] -> ()
+  | _ -> fail "snake_case must stay plain text"
+;;
+
 (* ------------------------------------------------------------------ *)
 (* Pass 1 — structure                                                 *)
 (* ------------------------------------------------------------------ *)
@@ -343,6 +386,38 @@ let test_planning () =
   | _ -> fail "expected planning attached to the heading"
 ;;
 
+let test_clock () =
+  let doc = Doc.parse "clock: => 1:30\n" in
+  let clock =
+    List.find_map
+      (function
+        | Elt_Lesser_Element (Lelt_Clock c, _) -> Some c
+        | _ -> None)
+      (all_elements doc)
+  in
+  match clock with
+  | Some (Duration { hh = 1; mm = 30 }) -> ()
+  | _ -> fail "expected a clock duration"
+;;
+
+let test_clock_range () =
+  let doc =
+    Doc.parse "CLOCK: [2024-10-12 Sat 09:00]--[2024-10-12 Sat 10:00] => 1:00\n"
+  in
+  let clock =
+    List.find_map
+      (function
+        | Elt_Lesser_Element (Lelt_Clock c, _) -> Some c
+        | _ -> None)
+      (all_elements doc)
+  in
+  match clock with
+  | Some
+      (Timestamp (Inactive_Range ({ hour = Some 9; _ }, { hour = Some 10; _ })))
+    -> ()
+  | _ -> fail "expected a clock timestamp range"
+;;
+
 (* ------------------------------------------------------------------ *)
 
 let () =
@@ -362,6 +437,12 @@ let () =
         ; tc "latex fragment" test_latex_fragment
         ; tc "footnote reference" test_footnote_reference
         ; tc "inline timestamp" test_inline_timestamp
+        ; tc "statistics cookie" test_statistics_cookie
+        ; tc "percent cookie" test_percent_cookie
+        ; tc "target" test_target
+        ; tc "radio stays plain" test_radio_stays_plain
+        ; tc "subscript" test_subscript
+        ; tc "no bare subscript" test_no_bare_subscript
         ] )
     ; ( "structure"
       , [ tc "headline components" test_headline_components
@@ -375,6 +456,8 @@ let () =
         ; tc "footnote definition" test_footnote_def
         ; tc "affiliated keywords" test_affiliated
         ; tc "planning" test_planning
+        ; tc "clock duration" test_clock
+        ; tc "clock range" test_clock_range
         ] )
     ]
 ;;

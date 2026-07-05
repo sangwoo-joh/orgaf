@@ -51,7 +51,7 @@ AST.
 | Component          | Status                   | Notes                                                              |
 |--------------------|--------------------------|--------------------------------------------------------------------|
 | Blocks             | :green_circle:           | src / example / export / comment / verse                           |
-| Clock              | :x:                      |                                                                    |
+| Clock              | :green_circle:           | timestamp / range / duration; typically inside a `:LOGBOOK:` drawer |
 | Diary Sexp         | :x:                      |                                                                    |
 | Planning           | :green_circle:           | SCHEDULED / DEADLINE / CLOSED; ranges and repeater/delay captured  |
 | Comments           | :green_circle:           |                                                                    |
@@ -78,12 +78,12 @@ AST.
 | Inline Source Blocks | :green_circle:           | `src_LANG[headers]{body}`                                              |
 | Line Breaks          | :green_circle:           | `\\` at end of line                                                    |
 | Links                | :heavy_exclamation_mark: | regular (id / custom-id / code-ref / hyperlink / fuzzy-file), angle, plain; radio links unsupported |
-| Macros               | :green_circle:           |                                                                        |
-| Targets              | :x:                      |                                                                        |
-| Radio Targets        | :x:                      |                                                                        |
-| Statistics Cookies   | :x:                      |                                                                        |
-| Subscript            | :x:                      |                                                                        |
-| Superscript          | :x:                      |                                                                        |
+| Macros               | :green_circle:           | parsed, not expanded                                                   |
+| Targets              | :green_circle:           | `<<target>>` node; resolving `[[target]]` links is a future pass       |
+| Radio Targets        | :x:                      | needs a document-wide resolution pass; left as plain text              |
+| Statistics Cookies   | :green_circle:           | `[N/M]`, `[/]`, `[N%]`, `[%]`                                          |
+| Subscript            | :green_circle:           | braced `_{…}` / `_*` only (bare form off, so `snake_case` is safe)      |
+| Superscript          | :green_circle:           | braced `^{…}` / `^*` only                                              |
 | Table Cells          | :green_circle:           |                                                                        |
 | Timestamps           | :green_circle:           | active / inactive, ranges, repeater/delay raw; inline and in planning  |
 | Text Markup          | :green_circle:           | bold / italic / underline / strike-through / code / verbatim           |
