@@ -379,21 +379,224 @@ let parse_macro =
   choice [ with_args; without_args ]
 ;;
 
-(* let parse_latex_fragment = failwith "not implemented" *)
-(* let parse_export_snippet = failwith "not implemented" *)
-(* let parse_footnote_reference = failwith "not implemented" *)
-(* let parse_citation = failwith "not implemented" *)
-(* let parse_subscript = failwith "not implemented" *)
-(* let parse_superscript = failwith "not implemented" *)
-(* let parse_citation_reference = failwith "not implemented" *)
-(* let parse_babel_calls = failwith "not implemented" *)
-(* let parse_source_block = failwith "not implemented" *)
-(* let parse_line_break = failwith "not implemented" *)
-(* let parse_target = failwith "not implemented" *)
-(* let parse_radio_target = failwith "not implemented" *)
-(* let parse_staistics_cookie = failwith "not implemented" *)
-(* let parse_table_cell = failwith "not implemented" *)
-(* let parse_timestamp = failwith "not implemented" *)
+(* A line break is [\\] at the end of a line, i.e. followed only by whitespace
+   (paragraph lines are joined with a space, so the trailing newline shows up as
+   that space) or the end of the fragment. *)
+let parse_line_break =
+  string "\\\\"
+  *> (at_end_of_input
+      >>= function
+      | true -> return M.Obj_Line_Break
+      | false ->
+        peek_char_fail
+        >>= (function
+         | ' ' | '\t' | '\n' | '\r' -> return M.Obj_Line_Break
+         | _ -> fail "line break must be followed by whitespace or EOL"))
+;;
+
+(* @@backend:value@@ *)
+let parse_export_snippet =
+  string "@@" *> take_while1 (fun c -> P.is_alpha_numeric c || c = '-')
+  >>= fun backend ->
+  char ':' *> take_till_string_non_greedy "@@"
+  >>= fun value ->
+  string "@@"
+  *> return
+       (M.Obj_Export_Snippet
+          { backend; value = (if value = "" then None else Some value) })
+;;
+
+(* src_LANG[HEADERS]{BODY} — inline source block (maps to inline code) *)
+let parse_inline_source_block =
+  string "src_"
+  *> take_while1 (fun c -> (not (P.is_whitespace c)) && c <> '{' && c <> '[')
+  >>= fun language ->
+  option
+    None
+    (char '[' *> take_till (fun c -> c = ']') <* char ']' >>| fun h -> Some h)
+  >>= fun headers ->
+  char '{' *> take_till (fun c -> c = '}')
+  <* char '}'
+  >>| fun body -> M.Obj_Inline_Source_Block { language; headers; body }
+;;
+
+(* [fn:LABEL] or [fn:LABEL:DEFINITION] (LABEL may be empty for anonymous) *)
+let parse_footnote_reference (self_parse_object : M.object_ t) =
+  string "[fn:"
+  *> take_while (fun c -> P.is_alpha_numeric c || c = '-' || c = '_')
+  >>= fun label ->
+  choice
+    [ (char ']' >>| fun _ -> M.Obj_Footnote_Reference { label; definition = [] })
+    ; (char ':' *> take_till_string_non_greedy "]"
+       >>= fun raw ->
+       char ']'
+       *> return
+            (M.Obj_Footnote_Reference
+               { label
+               ; definition =
+                   (match
+                      parse_string ~consume:All (many self_parse_object) raw
+                    with
+                    | Ok o -> o
+                    | Error _ -> [ M.Obj_Plain_text raw ])
+               }))
+    ]
+;;
+
+(* $$..$$, $..$, \(..\), \[..\], \command[..]{..} — contents kept raw for
+   downstream MathJax/KaTeX. *)
+let parse_latex_fragment =
+  let frag contents =
+    M.Obj_Latex_Fragment { name = ""; brackets = None; contents }
+  in
+  let delimited op cl =
+    string op *> take_till_string_non_greedy cl
+    <* string cl
+    >>| fun c -> frag (op ^ c ^ cl)
+  in
+  let dollar1 =
+    char '$' *> take_while1 (fun c -> c <> '$' && c <> '\n')
+    <* char '$'
+    >>= fun c ->
+    if c.[0] = ' ' || c.[String.length c - 1] = ' '
+    then fail "$-fragment cannot start or end with a space"
+    else return (frag ("$" ^ c ^ "$"))
+  in
+  let command =
+    char '\\' *> take_while1 P.is_alpha
+    >>= fun name ->
+    option
+      None
+      (char '[' *> take_till (fun c -> c = ']')
+       <* char ']'
+       >>| fun b -> Some ("[" ^ b ^ "]"))
+    >>= fun brackets ->
+    char '{' *> take_till (fun c -> c = '}')
+    <* char '}'
+    >>| fun body ->
+    M.Obj_Latex_Fragment { name; brackets; contents = "{" ^ body ^ "}" }
+  in
+  choice
+    [ delimited "$$" "$$"
+    ; dollar1
+    ; delimited "\\(" "\\)"
+    ; delimited "\\[" "\\]"
+    ; command
+    ]
+;;
+
+(* ------------------------------------------------------------------ *)
+(* timestamps                                                         *)
+(* ------------------------------------------------------------------ *)
+
+let hh_mm s =
+  match String.split_on_char ':' s with
+  | [ h; m ] -> Some (int_of_string h, int_of_string m)
+  | _ -> None
+;;
+
+let parse_ts_inner inner : (M.timestamp_data * (int * int) option) option =
+  match String.split_on_char ' ' inner |> List.filter (fun t -> t <> "") with
+  | date :: rest ->
+    (match String.split_on_char '-' date with
+     | [ y; mo; d ] ->
+       (try
+          let year = int_of_string y
+          and month = int_of_string mo
+          and day = int_of_string d in
+          let day_name = ref None
+          and hour = ref None
+          and minute = ref None in
+          let endt = ref None
+          and repeater = ref None
+          and delay = ref None in
+          List.iter
+            (fun t ->
+               if String.contains t ':' && t.[0] >= '0' && t.[0] <= '9'
+               then (
+                 match String.split_on_char '-' t with
+                 | [ a ] ->
+                   (match hh_mm a with
+                    | Some (h, m) ->
+                      hour := Some h;
+                      minute := Some m
+                    | None -> ())
+                 | [ a; b ] ->
+                   (match hh_mm a with
+                    | Some (h, m) ->
+                      hour := Some h;
+                      minute := Some m
+                    | None -> ());
+                   endt := hh_mm b
+                 | _ -> ())
+               else if
+                 t <> ""
+                 && (t.[0] = '+'
+                     || (String.length t > 1 && t.[0] = '.' && t.[1] = '+'))
+               then repeater := Some t
+               else if t <> "" && t.[0] = '-'
+               then delay := Some t
+               else day_name := Some t)
+            rest;
+          Some
+            ( { M.year
+              ; month
+              ; day
+              ; day_name = !day_name
+              ; hour = !hour
+              ; minute = !minute
+              ; repeater_raw = !repeater
+              ; delay_raw = !delay
+              }
+            , !endt )
+        with
+        | _ -> None)
+     | _ -> None)
+  | [] -> None
+;;
+
+let build_timestamp active (data, endt) second =
+  let range a b =
+    if active then M.Active_Range (a, b) else M.Inactive_Range (a, b)
+  in
+  match second with
+  | Some (data2, _) -> range data data2
+  | None ->
+    (match endt with
+     | Some (h, m) -> range data { data with hour = Some h; minute = Some m }
+     | None -> if active then M.Active data else M.Inactive data)
+;;
+
+let parse_timestamp_obj =
+  let diary =
+    string "<%%" *> take_till (fun c -> c = '>')
+    <* char '>'
+    >>| fun s -> M.Obj_Timestamp (M.Diary s)
+  in
+  let stamp active op cl =
+    char op *> take_while1 (fun c -> c <> cl && c <> '\n')
+    <* char cl
+    >>= fun inner ->
+    option
+      None
+      (string "--" *> char op *> take_while1 (fun c -> c <> cl && c <> '\n')
+       <* char cl
+       >>| fun s -> Some s)
+    >>= fun second ->
+    match parse_ts_inner inner with
+    | None -> fail "invalid timestamp"
+    | Some parsed ->
+      let second' = Option.bind second parse_ts_inner in
+      return (M.Obj_Timestamp (build_timestamp active parsed second'))
+  in
+  choice [ diary; stamp true '<' '>'; stamp false '[' ']' ]
+;;
+
+let timestamp_of_string s =
+  match parse_string ~consume:All parse_timestamp_obj s with
+  | Ok (M.Obj_Timestamp ts) -> Some ts
+  | _ -> None
+;;
 
 (* Permissive recursive object parser, used for CONTENTS nested inside markup and
    link descriptions. PRE is treated as always-valid here (contents start is a
@@ -402,12 +605,15 @@ let parse_object =
   fix (fun self_parse_object ->
     choice
       [ parse_text_markup ~prev:None self_parse_object
+      ; parse_footnote_reference self_parse_object
       ; parse_link ~prev:None self_parse_object
+      ; parse_timestamp_obj
+      ; parse_line_break
       ; parse_entity
+      ; parse_latex_fragment
+      ; parse_export_snippet
+      ; parse_inline_source_block
       ; parse_macro
-        (* ; parse_latex_fragment *)
-        (* ; parse_export_snippet *)
-        (* ; parse_footnote_reference *)
         (* ; parse_citation *)
         (* ; parse_citation_reference *)
         (* ; parse_superscript *)
@@ -417,14 +623,22 @@ let parse_object =
 ;;
 
 (* One object at the top level, with the real previous character supplied so
-   emphasis PRE is enforced correctly. *)
+   emphasis PRE is enforced correctly. [parse_plain_text] is deliberately absent:
+   the driver advances one character at a time and coalesces plain text, so a
+   construct beginning with an ordinary letter (e.g. [src_LANG{...}]) is still
+   attempted at its start rather than being swallowed by a greedy text run. *)
 let make_object ~prev =
   choice
     [ parse_text_markup ~prev parse_object
+    ; parse_footnote_reference parse_object
     ; parse_link ~prev parse_object
+    ; parse_timestamp_obj
+    ; parse_line_break
     ; parse_entity
+    ; parse_latex_fragment
+    ; parse_export_snippet
+    ; parse_inline_source_block
     ; parse_macro
-    ; parse_plain_text
     ]
 ;;
 

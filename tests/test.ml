@@ -86,6 +86,58 @@ let test_entity () =
   | _ -> fail "expected a \\cent entity"
 ;;
 
+let test_line_break () =
+  match Parse.parse_inline "one\\\\ two" with
+  | [ Obj_Plain_text "one"; Obj_Line_Break; Obj_Plain_text " two" ] -> ()
+  | _ -> fail "expected a line break"
+;;
+
+let test_export_snippet () =
+  match Parse.parse_inline "@@html:<b>x</b>@@" with
+  | [ Obj_Export_Snippet { backend = "html"; value = Some "<b>x</b>" } ] -> ()
+  | _ -> fail "expected an html export snippet"
+;;
+
+let test_inline_source () =
+  match Parse.parse_inline "src_python{print(1)}" with
+  | [ Obj_Inline_Source_Block { language = "python"; body = "print(1)"; _ } ] ->
+    ()
+  | _ -> fail "expected an inline source block"
+;;
+
+let test_latex_fragment () =
+  match Parse.parse_inline "x $a^2$ y" with
+  | [ Obj_Plain_text "x "
+    ; Obj_Latex_Fragment { contents = "$a^2$"; _ }
+    ; Obj_Plain_text " y"
+    ] -> ()
+  | _ -> fail "expected an inline LaTeX fragment"
+;;
+
+let test_footnote_reference () =
+  match Parse.parse_inline "see [fn:1]" with
+  | [ Obj_Plain_text "see "
+    ; Obj_Footnote_Reference { label = "1"; definition = [] }
+    ] -> ()
+  | _ -> fail "expected a footnote reference"
+;;
+
+let test_inline_timestamp () =
+  match Parse.parse_inline "at <2026-07-05 Sun 10:00>" with
+  | [ Obj_Plain_text "at "
+    ; Obj_Timestamp
+        (Active
+           { year = 2026
+           ; month = 7
+           ; day = 5
+           ; hour = Some 10
+           ; minute = Some 0
+           ; _
+           })
+    ] -> ()
+  | _ -> fail "expected an active timestamp"
+;;
+
 (* ------------------------------------------------------------------ *)
 (* Pass 1 — structure                                                 *)
 (* ------------------------------------------------------------------ *)
@@ -233,6 +285,64 @@ let test_keyword () =
   | _ -> fail "expected a title keyword"
 ;;
 
+let test_latex_env () =
+  let latex_env =
+    List.find_map
+      (function
+        | Elt_Lesser_Element (Lelt_LaTeX_Environment { name; contents; _ }, _)
+          -> Some (name, contents)
+        | _ -> None)
+      (all_elements (Doc.parse "\\begin{equation}\nE=mc^2\n\\end{equation}\n"))
+  in
+  match latex_env with
+  | Some ("equation", Some body) -> check_bool "raw body" true (body = "E=mc^2")
+  | _ -> fail "expected a LaTeX environment"
+;;
+
+let test_footnote_def () =
+  let doc =
+    Doc.parse "[fn:1] A short footnote.\n\n[fn:2] Longer.\n\nStill 2.\n"
+  in
+  let labels =
+    List.filter_map
+      (function
+        | Elt_Greater_Element (Gelt_Footnote_Definition { label; _ }, _) ->
+          Some label
+        | _ -> None)
+      (all_elements doc)
+  in
+  check_bool "two footnote definitions" true (labels = [ "1"; "2" ])
+;;
+
+let test_affiliated () =
+  let doc = Doc.parse "#+CAPTION: hi\n#+NAME: t1\n| a |\n" in
+  let aff =
+    List.find_map
+      (function
+        | Elt_Greater_Element (Gelt_Table _, aff) when aff <> [] -> Some aff
+        | _ -> None)
+      (all_elements doc)
+  in
+  match aff with
+  | Some [ { key = "CAPTION"; _ }; { key = "NAME"; _ } ] -> ()
+  | _ -> fail "expected CAPTION and NAME affiliated to the table"
+;;
+
+let test_planning () =
+  match Doc.parse "* Task\nSCHEDULED: <2026-07-05 Sun>\n" with
+  | [ Elt_Heading
+        { planning =
+            Some
+              { plannings =
+                  [ { keyword = `Scheduled; timestamp = Active { day = 5; _ } }
+                  ]
+              }
+        ; _
+        }
+    ] -> ()
+  | _ -> fail "expected planning attached to the heading"
+;;
+
 (* ------------------------------------------------------------------ *)
 
 let () =
@@ -246,6 +356,12 @@ let () =
         ; tc "no mid-word emphasis" test_no_bold_midword
         ; tc "link with description" test_link_with_desc
         ; tc "entity" test_entity
+        ; tc "line break" test_line_break
+        ; tc "export snippet" test_export_snippet
+        ; tc "inline source block" test_inline_source
+        ; tc "latex fragment" test_latex_fragment
+        ; tc "footnote reference" test_footnote_reference
+        ; tc "inline timestamp" test_inline_timestamp
         ] )
     ; ( "structure"
       , [ tc "headline components" test_headline_components
@@ -255,6 +371,10 @@ let () =
         ; tc "plain list" test_list
         ; tc "table" test_table
         ; tc "keyword" test_keyword
+        ; tc "latex environment" test_latex_env
+        ; tc "footnote definition" test_footnote_def
+        ; tc "affiliated keywords" test_affiliated
+        ; tc "planning" test_planning
         ] )
     ]
 ;;

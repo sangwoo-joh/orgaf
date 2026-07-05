@@ -245,6 +245,87 @@ let is_planning content =
   || starts_with ~prefix:"CLOSED:" content
 ;;
 
+(* \begin{NAME}EXTRA -> (name, extra) *)
+let parse_latex_begin content =
+  if starts_with ~prefix:"\\begin{" content
+  then (
+    match String.index_from_opt content 7 '}' with
+    | Some j ->
+      Some
+        ( String.sub content 7 (j - 7)
+        , String.sub content (j + 1) (String.length content - j - 1) )
+    | None -> None)
+  else None
+;;
+
+let is_latex_end name content = rstrip content = "\\end{" ^ name ^ "}"
+
+(* [fn:LABEL] CONTENTS at line start -> (label, first-line contents) *)
+let parse_footnote_def content =
+  if starts_with ~prefix:"[fn:" content
+  then (
+    match String.index_from_opt content 4 ']' with
+    | Some j ->
+      let label = String.sub content 4 (j - 4) in
+      if label <> "" && String.for_all (fun c -> is_tag_char c || c = '-') label
+      then
+        Some
+          ( label
+          , lstrip (String.sub content (j + 1) (String.length content - j - 1))
+          )
+      else None
+    | None -> None)
+  else None
+;;
+
+(* affiliated keywords: #+NAME:, #+CAPTION[opt]:, #+ATTR_backend:, … *)
+let affiliated_names =
+  [ "CAPTION"
+  ; "DATA"
+  ; "HEADER"
+  ; "HEADERS"
+  ; "LABEL"
+  ; "NAME"
+  ; "PLOT"
+  ; "RESNAME"
+  ; "RESULT"
+  ; "RESULTS"
+  ; "SOURCE"
+  ; "SRCNAME"
+  ; "TBLNAME"
+  ]
+;;
+
+let parse_affiliated content : M.affiliated_keyword_info option =
+  if not (starts_with ~prefix:"#+" content)
+  then None
+  else (
+    let body = String.sub content 2 (String.length content - 2) in
+    match String.index_opt body ':' with
+    | None -> None
+    | Some ci ->
+      let key, optval =
+        match String.index_opt body '[' with
+        | Some bi when bi < ci ->
+          (match String.index_from_opt body bi ']' with
+           | Some be when be < ci ->
+             String.sub body 0 bi, Some (String.sub body (bi + 1) (be - bi - 1))
+           | _ -> String.sub body 0 ci, None)
+        | _ -> String.sub body 0 ci, None
+      in
+      let ukey = String.uppercase_ascii key in
+      if List.mem ukey affiliated_names || starts_with ~prefix:"ATTR_" ukey
+      then (
+        let value_raw =
+          lstrip (String.sub body (ci + 1) (String.length body - ci - 1))
+        in
+        let value_parsed =
+          if ukey = "CAPTION" then Some (Parse.parse_inline value_raw) else None
+        in
+        Some { M.key; optval; value_raw; value_parsed })
+      else None)
+;;
+
 (* ------------------------------------------------------------------ *)
 (* list items                                                         *)
 (* ------------------------------------------------------------------ *)
@@ -337,82 +418,66 @@ let split_tag s =
 ;;
 
 (* ------------------------------------------------------------------ *)
-(* timestamps / planning (basic)                                      *)
+(* planning (timestamps come from Parse.timestamp_of_string)          *)
 (* ------------------------------------------------------------------ *)
 
-let parse_ts_data inner =
-  (* YYYY-MM-DD [Dayname] [HH:MM] *)
-  match String.split_on_char '-' inner with
-  | y :: mo :: rest_str :: _ ->
-    (try
-       let year = int_of_string (String.trim y) in
-       let month = int_of_string (String.trim mo) in
-       let rest = String.trim rest_str in
-       let day = int_of_string (List.hd (String.split_on_char ' ' rest)) in
-       let hour, minute =
-         match String.index_opt rest ':' with
-         | Some c ->
-           let hh = String.sub rest (c - 2) 2
-           and mm = String.sub rest (c + 1) 2 in
-           (try Some (int_of_string hh), Some (int_of_string mm) with
-            | _ -> None, None)
-         | None -> None, None
-       in
-       let day_name =
-         let toks = String.split_on_char ' ' rest in
-         List.find_opt
-           (fun t -> t <> "" && not (t.[0] >= '0' && t.[0] <= '9'))
-           (List.tl toks)
-       in
-       Some
-         { M.year
-         ; month
-         ; day
-         ; day_name
-         ; hour
-         ; minute
-         ; repeater_raw = None
-         ; delay_raw = None
-         }
-     with
-     | _ -> None)
-  | _ -> None
+let planning_key content i =
+  (* keyword + colon at [i] -> (key, index after colon) *)
+  List.find_map
+    (fun (word, key) ->
+       let w = word ^ ":" in
+       if
+         starts_with
+           ~prefix:w
+           (String.sub content i (String.length content - i))
+       then Some (key, i + String.length w)
+       else None)
+    [ "SCHEDULED", `Scheduled; "DEADLINE", `Deadline; "CLOSED", `Closed ]
 ;;
 
-let parse_timestamp s =
-  let s = String.trim s in
-  let n = String.length s in
-  if n < 2
-  then None
-  else (
-    let active = s.[0] = '<' in
-    if (s.[0] = '<' && s.[n - 1] = '>') || (s.[0] = '[' && s.[n - 1] = ']')
+(* read a <...> / [...] group (and any --<...> range continuation) at [i] *)
+let read_timestamp_str content i =
+  let n = String.length content in
+  let close_of c = if c = '<' then '>' else ']' in
+  let read_one k =
+    if k >= n || not (content.[k] = '<' || content.[k] = '[')
+    then None
+    else
+      String.index_from_opt content k (close_of content.[k])
+      |> Option.map (fun j -> j + 1)
+  in
+  match read_one i with
+  | None -> None
+  | Some j ->
+    if j + 2 < n && content.[j] = '-' && content.[j + 1] = '-'
     then (
-      let inner = String.sub s 1 (n - 2) in
-      match parse_ts_data inner with
-      | Some d -> Some (if active then M.Active d else M.Inactive d)
-      | None -> None)
-    else None)
+      match read_one (j + 2) with
+      | Some k -> Some (String.sub content i (k - i), k)
+      | None -> Some (String.sub content i (j - i), j))
+    else Some (String.sub content i (j - i), j)
 ;;
 
 let parse_planning content =
-  let toks = String.split_on_char ' ' content in
-  let rec collect acc = function
-    | kw :: ts :: rest ->
-      let key =
-        match kw with
-        | "SCHEDULED:" -> Some `Scheduled
-        | "DEADLINE:" -> Some `Deadline
-        | "CLOSED:" -> Some `Closed
-        | _ -> None
-      in
-      (match key, parse_timestamp ts with
-       | Some keyword, Some timestamp ->
-         collect ({ M.keyword; timestamp } :: acc) rest
-       | _ -> collect acc (ts :: rest))
-    | _ -> List.rev acc
+  let n = String.length content in
+  let rec skip_spaces i =
+    if i < n && content.[i] = ' ' then skip_spaces (i + 1) else i
   in
-  match collect [] (List.filter (fun t -> t <> "") toks) with
+  let rec go i acc =
+    if i >= n
+    then List.rev acc
+    else (
+      match planning_key content i with
+      | Some (key, j) ->
+        let k = skip_spaces j in
+        (match read_timestamp_str content k with
+         | Some (ts, k') ->
+           (match Parse.timestamp_of_string ts with
+            | Some timestamp -> go k' ({ M.keyword = key; timestamp } :: acc)
+            | None -> go (k + 1) acc)
+         | None -> go (k + 1) acc)
+      | None -> go (i + 1) acc)
+  in
+  match go 0 [] with
   | [] -> None
   | plannings -> Some { M.plannings }
 ;;
@@ -440,15 +505,42 @@ let paragraph_of lines =
 (* the scan loop                                                      *)
 (* ------------------------------------------------------------------ *)
 
-let rec scan (lines : L.t list) : flat list =
+(* affiliated keywords with no element after them are just regular keywords *)
+let orphan_affiliated aff =
+  List.rev_map
+    (fun (ak : M.affiliated_keyword_info) ->
+       FElement (lesser (M.Lelt_Keyword { key = ak.key; value = ak.value_raw })))
+    aff
+;;
+
+let attach_affiliated aff flats =
+  match aff, flats with
+  | [], _ -> flats
+  | _, [ FElement (M.Elt_Greater_Element (g, _)) ] ->
+    [ FElement (M.Elt_Greater_Element (g, List.rev aff)) ]
+  | _, [ FElement (M.Elt_Lesser_Element ((M.Lelt_Keyword _ as l), _)) ] ->
+    orphan_affiliated aff @ [ FElement (lesser l) ]
+  | _, [ FElement (M.Elt_Lesser_Element (l, _)) ] ->
+    [ FElement (M.Elt_Lesser_Element (l, List.rev aff)) ]
+  | _, _ -> orphan_affiliated aff @ flats
+;;
+
+let rec scan (lines : L.t list) : flat list = scan_aff [] lines
+
+(* [aff] holds pending affiliated keywords (most recent first) to attach to the
+   next element. A blank line or a non-attachable target orphans them. *)
+and scan_aff aff (lines : L.t list) : flat list =
   match lines with
-  | [] -> []
+  | [] -> orphan_affiliated aff
   | line :: rest ->
     if line.blank
-    then scan rest
+    then orphan_affiliated aff @ scan rest
     else (
-      let flats, rest' = dispatch line rest in
-      flats @ scan rest')
+      match parse_affiliated line.content with
+      | Some ak -> scan_aff (ak :: aff) rest
+      | None ->
+        let flats, rest' = dispatch line rest in
+        attach_affiliated aff flats @ scan rest')
 
 and dispatch (line : L.t) rest =
   let content = line.L.content in
@@ -458,30 +550,36 @@ and dispatch (line : L.t) rest =
     (match parse_block_begin content with
      | Some (name, params) -> handle_block name params rest
      | None ->
-       (match parse_keyword content with
-        | Some (key, value) ->
-          [ FElement (lesser (M.Lelt_Keyword { key; value })) ], rest
+       (match parse_latex_begin content with
+        | Some (name, extra) -> handle_latex_env name extra rest
         | None ->
-          if is_comment content
-          then handle_comment (line :: rest)
-          else (
-            match parse_drawer_begin content with
-            | Some name -> handle_drawer name rest
-            | None ->
-              if is_fixed_width content
-              then handle_fixed_width (line :: rest)
-              else if is_planning content
-              then (
-                match parse_planning content with
-                | Some p -> [ FPlanning p ], rest
-                | None -> handle_paragraph (line :: rest))
-              else if is_hrule content
-              then [ FElement (lesser M.Lelt_Horizontal_Rule) ], rest
-              else if is_table content
-              then handle_table (line :: rest)
-              else if is_item content
-              then handle_list line.L.indent (line :: rest)
-              else handle_paragraph (line :: rest))))
+          (match parse_footnote_def content with
+           | Some (label, first) -> handle_footnote_def label first rest
+           | None ->
+             (match parse_keyword content with
+              | Some (key, value) ->
+                [ FElement (lesser (M.Lelt_Keyword { key; value })) ], rest
+              | None ->
+                if is_comment content
+                then handle_comment (line :: rest)
+                else (
+                  match parse_drawer_begin content with
+                  | Some name -> handle_drawer name rest
+                  | None ->
+                    if is_fixed_width content
+                    then handle_fixed_width (line :: rest)
+                    else if is_planning content
+                    then (
+                      match parse_planning content with
+                      | Some p -> [ FPlanning p ], rest
+                      | None -> handle_paragraph (line :: rest))
+                    else if is_hrule content
+                    then [ FElement (lesser M.Lelt_Horizontal_Rule) ], rest
+                    else if is_table content
+                    then handle_table (line :: rest)
+                    else if is_item content
+                    then handle_list line.L.indent (line :: rest)
+                    else handle_paragraph (line :: rest))))))
 
 (* ----- paired: blocks ----- *)
 and handle_block name params rest =
@@ -546,6 +644,47 @@ and elements_of lines =
       | FElement e -> Some e
       | _ -> None)
     (scan lines)
+
+(* ----- paired: LaTeX environment ----- *)
+and handle_latex_env name extra rest =
+  let rec collect acc = function
+    | [] -> List.rev acc, []
+    | (l : L.t) :: tl ->
+      if is_latex_end name l.content
+      then List.rev acc, tl
+      else collect (l :: acc) tl
+  in
+  let body, rest' = collect [] rest in
+  let elt =
+    lesser
+      (M.Lelt_LaTeX_Environment
+         { name; extra = opt (rstrip extra); contents = opt (raw_body body) })
+  in
+  [ FElement elt ], rest'
+
+(* ----- footnote definitions ----- *)
+and handle_footnote_def label first rest =
+  (* contents end at the next footnote/heading, two consecutive blanks, or EOF *)
+  let rec collect acc = function
+    | (l1 : L.t) :: (l2 :: _ as tl) when l1.blank && l2.blank ->
+      List.rev acc, tl
+    | (l : L.t) :: tl
+      when parse_headline l <> None || parse_footnote_def l.content <> None ->
+      List.rev acc, l :: tl
+    | (l : L.t) :: tl -> collect (l :: acc) tl
+    | [] -> List.rev acc, []
+  in
+  let body, rest' = collect [] rest in
+  let body =
+    List.rev (List.filter (fun (l : L.t) -> not l.L.blank) (List.rev body))
+  in
+  let body_lines = (if first = "" then [] else [ L.make first ]) @ body in
+  ( [ FElement
+        (greater
+           (M.Gelt_Footnote_Definition
+              { label; contents = elements_of body_lines }))
+    ]
+  , rest' )
 
 (* ----- paired: drawers ----- *)
 and handle_drawer name rest =
@@ -747,6 +886,9 @@ and handle_paragraph lines =
 and is_paragraph_breaker (l : L.t) =
   let c = l.L.content in
   parse_block_begin c <> None
+  || parse_latex_begin c <> None
+  || parse_footnote_def c <> None
+  || parse_affiliated c <> None
   || parse_keyword c <> None
   || is_comment c
   || parse_drawer_begin c <> None
